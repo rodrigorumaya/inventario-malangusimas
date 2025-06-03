@@ -1,0 +1,3194 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌶️ Malanguísimas - Sistema de Inventario</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #ff6b35, #f7931e);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        /* Login Screen */
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .login-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+        
+        .login-card h1 {
+            color: #d73027;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+        }
+        
+        .login-card p {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            display: none;
+        }
+        
+        .container.active {
+            display: block;
+        }
+        
+        .header {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        .header .btn {
+            padding: 8px 20px;
+            font-size: 14px;
+            margin: 0 5px;
+        }
+        
+        .header h1 {
+            font-size: 3em;
+            color: #d73027;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            color: #666;
+        }
+        
+        .sync-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: #4CAF50;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            z-index: 1500;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .sync-status.offline {
+            background: #f44336;
+        }
+        
+        .sync-status.syncing {
+            background: #ff9800;
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+        }
+        
+        .card h2 {
+            color: #d73027;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 3px solid #ff6b35;
+            padding-bottom: 10px;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #ff6b35, #d73027);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin: 10px 0;
+            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #ff9800, #e68900);
+            box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #f44336, #d32f2f);
+            box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3);
+        }
+        
+        .input-group {
+            margin: 15px 0;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: #ff6b35;
+            box-shadow: 0 0 10px rgba(255, 107, 53, 0.2);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            overflow-y: auto;
+            padding: 20px 0;
+        }
+        
+        .modal-content {
+            background: white;
+            margin: auto;
+            padding: 30px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.3s ease;
+            position: relative;
+        }
+        
+        /* Estilo personalizado para la barra de scroll */
+        .modal-content::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .modal-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        .modal-content::-webkit-scrollbar-thumb {
+            background: #ff6b35;
+            border-radius: 10px;
+        }
+        
+        .modal-content::-webkit-scrollbar-thumb:hover {
+            background: #d73027;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s ease;
+            position: sticky;
+            top: -10px;
+            background: white;
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            text-align: center;
+            line-height: 30px;
+            z-index: 10;
+        }
+        
+        .close:hover {
+            color: #d73027;
+        }
+        
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+            max-height: 60vh;
+            overflow-y: auto;
+            padding: 10px;
+        }
+        
+        .inventory-grid::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .inventory-grid::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        .inventory-grid::-webkit-scrollbar-thumb {
+            background: #ff6b35;
+            border-radius: 10px;
+        }
+        
+        .product-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            border-left: 5px solid #ff6b35;
+            transition: transform 0.2s ease;
+        }
+        
+        .product-card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .product-name {
+            font-weight: bold;
+            color: #d73027;
+            margin-bottom: 10px;
+        }
+        
+        .stock-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .stock-badge {
+            padding: 5px 10px;
+            border-radius: 15px;
+            color: white;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+        
+        .stock-good { background-color: #4CAF50; }
+        .stock-low { background-color: #ff9800; }
+        .stock-out { background-color: #f44336; }
+        
+        .price-list {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .price-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .price-row:last-child {
+            border-bottom: none;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 5px solid;
+        }
+        
+        .alert-success {
+            background-color: #d4edda;
+            border-color: #4CAF50;
+            color: #155724;
+        }
+        
+        .alert-warning {
+            background-color: #fff3cd;
+            border-color: #ff9800;
+            color: #856404;
+        }
+        
+        .alert-error {
+            background-color: #f8d7da;
+            border-color: #f44336;
+            color: #721c24;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #ff6b35, #d73027);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 14px;
+            width: auto;
+            display: inline-block;
+        }
+        
+        /* Estilos para el carrito de ventas */
+        .carrito-container {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .carrito-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .carrito-item:last-child {
+            border-bottom: none;
+        }
+        
+        .carrito-vacio {
+            text-align: center;
+            color: #999;
+            padding: 20px;
+        }
+        
+        .total-venta {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            font-weight: bold;
+            text-align: right;
+        }
+        
+        .btn-inline {
+            background: #ff6b35;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        
+        .btn-inline:hover {
+            background: #d73027;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .modal-content {
+                width: 95%;
+                margin: 10px auto;
+                padding: 20px;
+                max-height: 85vh;
+            }
+            
+            .inventory-grid {
+                max-height: 50vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="loginContainer" class="login-container">
+        <div class="login-card">
+            <h1>🌶️ Malanguísimas</h1>
+            <p>Sistema de Inventario y Ventas</p>
+            <form onsubmit="iniciarSesion(event)">
+                <div class="input-group">
+                    <label>Código de Acceso:</label>
+                    <input type="password" id="codigoAcceso" placeholder="Ingresa el código" required>
+                </div>
+                <button type="submit" class="btn">🔐 Ingresar al Sistema</button>
+            </form>
+            <div id="loginError" class="alert alert-error hidden" style="margin-top: 20px;">
+                Código incorrecto. Intenta nuevamente.
+            </div>
+        </div>
+    </div>
+
+    <!-- Sync Status Indicator -->
+    <div id="syncStatus" class="sync-status hidden">
+        <span id="syncText">✅ Sincronizado</span>
+    </div>
+
+    <!-- Main Application -->
+    <div id="mainApp" class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🌶️ Malanguísimas</h1>
+            <p>Sistema de Inventario y Ventas - En línea</p>
+            <div style="margin-top: 15px;">
+                <button class="btn btn-secondary" onclick="sincronizarDatos()" style="margin: 5px;">🔄 Sincronizar</button>
+                <button class="btn btn-danger" onclick="cerrarSesion()" style="margin: 5px;">🚪 Salir</button>
+            </div>
+        </div>
+
+        <!-- Main Dashboard -->
+        <div class="main-grid">
+            <!-- Inventario -->
+            <div class="card">
+                <h2>📦 Inventario</h2>
+                <button class="btn" onclick="mostrarInventario()">Ver Inventario Completo</button>
+                <button class="btn btn-secondary" onclick="mostrarModal('agregarStockModal')">➕ Agregar Stock</button>
+                <button class="btn btn-danger" onclick="mostrarModal('quitarStockModal')">➖ Quitar Stock</button>
+                <button class="btn btn-warning" onclick="mostrarModal('convertirStockModal')">🔄 Convertir Tamaños</button>
+                <button class="btn btn-warning" onclick="mostrarModal('actualizarCostosModal')">💰 Actualizar Costos Base</button>
+            </div>
+
+            <!-- Ventas -->
+            <div class="card">
+                <h2>🛒 Ventas</h2>
+                <button class="btn" onclick="prepararVentaMultiple('menudeo')">🛒 Venta Menudeo</button>
+                <button class="btn" onclick="prepararVentaMultiple('mayoreo')">🏪 Venta Mayoreo</button>
+                <button class="btn btn-warning" onclick="mostrarModal('regaladaModal')">🎁 Registrar Regalada</button>
+                <button class="btn btn-secondary" onclick="mostrarModal('envioModal')">📦 Registrar Envío</button>
+                <button class="btn btn-danger" onclick="mostrarCancelarVenta()">❌ Cancelar Venta</button>
+                <button class="btn btn-secondary" onclick="mostrarReportes()">📊 Ver Reportes</button>
+            </div>
+
+            <!-- Información -->
+            <div class="card">
+                <h2>💲 Precios</h2>
+                <div class="price-list">
+                    <div class="price-row">
+                        <strong>Tamaño 50g:</strong>
+                        <span>Mayoreo $20.00 | Menudeo $25.00</span>
+                    </div>
+                    <div class="price-row">
+                        <strong>Tamaño 100g:</strong>
+                        <span>Mayoreo $33.00 | Menudeo $40.00</span>
+                    </div>
+                    <div class="price-row" style="border-top: 2px solid #ff6b35; padding-top: 10px; margin-top: 10px;">
+                        <strong>Costos Base:</strong>
+                        <span>50g: $15.00 | 100g: $23.00</span>
+                    </div>
+                </div>
+                <button class="btn btn-secondary" onclick="mostrarModal('gastosModal')">💸 Registrar Gasto</button>
+            </div>
+        </div>
+
+        <!-- Nueva sección de Análisis -->
+        <div class="card" style="margin-bottom: 20px;">
+            <h2>📈 Análisis y Tendencias</h2>
+            <button class="btn" onclick="mostrarTendencias()">📊 Ver Tendencias de Ventas</button>
+            <button class="btn btn-secondary" onclick="mostrarRecomendaciones()">💡 Recomendaciones de Stock</button>
+        </div>
+
+        <!-- Estadísticas Rápidas -->
+        <div class="card">
+            <h2>📊 Estadísticas del Día</h2>
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-card">
+                    <div class="stat-number" id="ventasHoy">0</div>
+                    <div>Ventas Hoy</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="ingresosHoy">$0</div>
+                    <div>Ingresos Hoy</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="productosStock">0</div>
+                    <div>Productos en Stock</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="ultimaSinc">--:--</div>
+                    <div>Última Sincronización</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Agregar Stock -->
+    <div id="agregarStockModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="cerrarModal('agregarStockModal')">&times;</span>
+            <h2>➕ Agregar Stock</h2>
+            <form onsubmit="agregarStock(event)">
+                <div class="input-group">
+                    <label>Sabor:</label>
+                    <select id="saborStock" required>
+                        <option value="">Selecciona un sabor</option>
+                        <option value="fuego">🔥 Fuego</option>
+                        <option value="misterio">🌟 Misterio</option>
+                        <option value="habanero">🌶️ Habanero</option>
+                        <option value="jalapeño">🫑 Jalapeño</option>
+                        <option value="adobadas">🧂 Adobadas</option>
+                        <option value="naturales">🥬 Naturales</option>
+                        <option value="especias">✨ Especias</option>
+                        <option value="chipotle">🔥 Chipotle</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Tamaño:</label>
+                    <select id="tamañoStock" required>
+                        <option value="">Selecciona tamaño</option>
+                        <option value="50">50g</option>
+                        <option value="100">100g</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Cantidad a agregar:</label>
+                    <input type="number" id="cantidadStock" min="1" required>
+                </div>
+                <button type="submit" class="btn">✅ Agregar Stock</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Quitar Stock -->
+    <div id="quitarStockModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="cerrarModal('quitarStockModal')">&times;</span>
+            <h2>➖ Quitar Stock</h2>
+            <form onsubmit="quitarStock(event)">
+                <div class="input-group">
+                    <label>Sabor:</label>
+                    <select id="saborQuitar" required onchange="mostrarStockActual()">
+                        <option value="">Selecciona un sabor</option>
+                        <option value="fuego">🔥 Fuego</option>
+                        <option value="misterio">🌟 Misterio</option>
+                        <option value="habanero">🌶️ Habanero</option>
+                        <option value="jalapeño">🫑 Jalapeño</option>
+                        <option value="adobadas">🧂 Adobadas</option>
+                        <option value="naturales">🥬 Naturales</option>
+                        <option value="especias">✨ Especias</option>
+                        <option value="chipotle">🔥 Chipotle</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Tamaño:</label>
+                    <select id="tamañoQuitar" required onchange="mostrarStockActual()">
+                        <option value="">Selecciona tamaño</option>
+                        <option value="50">50g</option>
+                        <option value="100">100g</option>
+                    </select>
+                </div>
+                <div id="stockActualInfo" class="alert alert-warning hidden" style="margin: 15px 0;">
+                    Stock actual: <strong id="stockActualTexto">0</strong> unidades
+                </div>
+                <div class="input-group">
+                    <label>Cantidad a quitar:</label>
+                    <input type="number" id="cantidadQuitar" min="1" required>
+                </div>
+                <div class="input-group">
+                    <label>Motivo (opcional):</label>
+                    <select id="motivoQuitar">
+                        <option value="dañado">Producto dañado</option>
+                        <option value="vencido">Producto vencido</option>
+                        <option value="perdida">Pérdida/Robo</option>
+                        <option value="ajuste">Ajuste de inventario</option>
+                        <option value="otro">Otro</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-danger">❌ Quitar del Stock</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Venta Múltiple -->
+    <div id="ventaMultipleModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="close" onclick="cerrarModal('ventaMultipleModal')">&times;</span>
+            <h2 id="tituloVentaMultiple">🛒 Venta</h2>
+            
+            <!-- Agregar productos al carrito -->
+            <div style="background: #f0f0f0; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                <h3>Agregar Producto</h3>
+                <div style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end;">
+                    <div class="input-group" style="margin: 0;">
+                        <label>Sabor:</label>
+                        <select id="saborVentaMultiple">
+                            <option value="">Selecciona</option>
+                            <option value="fuego">🔥 Fuego</option>
+                            <option value="misterio">🌟 Misterio</option>
+                            <option value="habanero">🌶️ Habanero</option>
+                            <option value="jalapeño">🫑 Jalapeño</option>
+                            <option value="adobadas">🧂 Adobadas</option>
+                            <option value="naturales">🥬 Naturales</option>
+                            <option value="especias">✨ Especias</option>
+                            <option value="chipotle">🔥 Chipotle</option>
+                        </select>
+                    </div>
+                    <div class="input-group" style="margin: 0;">
+                        <label>Tamaño:</label>
+                        <select id="tamañoVentaMultiple">
+                            <option value="">Tamaño</option>
+                            <option value="50">50g</option>
+                            <option value="100">100g</option>
+                        </select>
+                    </div>
+                    <div class="input-group" style="margin: 0;">
+                        <label>Cantidad:</label>
+                        <input type="number" id="cantidadVentaMultiple" min="1" placeholder="0">
+                    </div>
+                    <button type="button" class="btn btn-secondary" style="margin: 0; height: 45px;" onclick="agregarAlCarrito()">
+                        ➕ Agregar
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Carrito de compras -->
+            <h3>🛒 Carrito de Compra</h3>
+            <div class="carrito-container">
+                <div id="carritoVenta">
+                    <div class="carrito-vacio">El carrito está vacío</div>
+                </div>
+            </div>
+            
+            <!-- Costo personalizado del pedido -->
+            <div class="input-group">
+                <label>
+                    <input type="checkbox" id="costoPersonalizado" onchange="toggleCostoPersonalizado()">
+                    Usar costo de producción personalizado para este pedido
+                </label>
+            </div>
+            
+            <div id="costoPersonalizadoContainer" class="input-group hidden">
+                <label>Costo total de producción del pedido:</label>
+                <input type="number" id="costoTotalPedido" step="0.01" min="0" placeholder="0.00" onchange="actualizarTotalesCarrito()">
+                <small style="color: #666;">Este costo reemplazará el cálculo automático basado en costos individuales</small>
+            </div>
+            
+            <!-- Resumen de totales -->
+            <div class="total-venta">
+                <div id="resumenVenta">
+                    <div>Subtotal: $<span id="subtotalVenta">0.00</span></div>
+                    <div id="costoVentaDiv">Costo estimado: $<span id="costoVenta">0.00</span></div>
+                    <div style="color: #28a745;">Ganancia estimada: $<span id="gananciaVenta">0.00</span></div>
+                    <hr style="margin: 10px 0;">
+                    <div style="font-size: 1.2em;">Total a cobrar: $<span id="totalVenta">0.00</span></div>
+                </div>
+            </div>
+            
+            <button type="button" class="btn" onclick="confirmarVentaMultiple()" id="btnConfirmarVenta" disabled>
+                💰 Confirmar Venta
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal: Actualizar Costos -->
+    <div id="actualizarCostosModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="cerrarModal('actualizarCostosModal')">&times;</span>
+            <h2>💰 Actualizar Costos Base</h2>
+            <p style="color: #666; margin-bottom: 20px;">
+                Estos son los costos base de referencia. Puedes ajustar el costo real al momento de cada venta.
+            </p>
+            <form onsubmit="actualizarCostos(event)">
+                <div class="input-group">
+                    <label>Sabor:</label>
+                    <select id="saborCosto" required>
+                        <option value="">Selecciona un sabor</option>
+                        <option value="fuego">🔥 Fuego</option>
+                        <option value="misterio">🌟 Misterio</option>
+                        <option value="habanero">🌶️ Habanero</option>
+                        <option value="jalapeño">🫑 Jalapeño</option>
+                        <option value="adobadas">🧂 Adobadas</option>
+                        <option value="naturales">🥬 Naturales</option>
+                        <option value="especias">✨ Especias</option>
+                        <option value="chipotle">🔥 Chipotle</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Tamaño:</label>
+                    <select id="tamañoCosto" required>
+                        <option value="">Selecciona tamaño</option>
+                        <option value="50">50g</option>
+                        <option value="100">100g</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Costo base de producción:</label>
+                    <input type="number" id="costoProduccion" step="0.01" min="0" required>
+                </div>
+                <button type="submit" class="btn">✅ Actualizar Costo Base</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Registrar Gasto -->
+    <div id="gastosModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="cerrarModal('gastosModal')">&times;</span>
+            <h2>💸 Registrar Gasto</h2>
+            <form onsubmit="registrarGasto(event)">
+                <div class="input-group">
+                    <label>Concepto:</label>
+                    <input type="text" id="conceptoGasto" required placeholder="Ej: Compra de chiles">
+                </div>
+                <div class="input-group">
+                    <label>Monto:</label>
+                    <input type="number" id="montoGasto" step="0.01" min="0" required>
+                </div>
+                <div class="input-group">
+                    <label>Categoría:</label>
+                    <select id="categoriaGasto">
+                        <option value="operativo">Operativo</option>
+                        <option value="materia_prima">Materia Prima</option>
+                        <option value="transporte">Transporte</option>
+                        <option value="equipamiento">Equipamiento</option>
+                        <option value="otros">Otros</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn">✅ Registrar Gasto</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Registrar Regalada -->
+    <div id="regaladaModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="cerrarModal('regaladaModal')">&times;</span>
+            <h2>🎁 Registrar Regalada (Muestra)</h2>
+            <form onsubmit="registrarRegalada(event)">
+                <div class="input-group">
+                    <label>Sabor:</label>
+                    <select id="saborRegalada" required>
+                        <option value="">Selecciona un sabor</option>
+                        <option value="fuego">🔥 Fuego</option>
+                        <option value="misterio">🌟 Misterio</option>
+                        <option value="habanero">🌶️ Habanero</option>
+                        <option value="jalapeño">🫑 Jalapeño</option>
+                        <option value="adobadas">🧂 Adobadas</option>
+                        <option value="naturales">🥬 Naturales</option>
+                        <option value="especias">✨ Especias</option>
+                        <option value="chipotle">🔥 Chipotle</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Tamaño:</label>
+                    <select id="tamañoRegalada" required>
+                        <option value="">Selecciona tamaño</option>
+                        <option value="50">50g</option>
+                        <option value="100">100g</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Cantidad regalada:</label>
+                    <input type="number" id="cantidadRegalada" min="1" required>
+                </div>
+                <div class="input-group">
+                    <label>Punto de venta (opcional):</label>
+                    <input type="text" id="puntoVenta" placeholder="Ej: Tienda El Ahorro">
+                </div>
+                <button type="submit" class="btn btn-warning">🎁 Registrar Regalada</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Convertir Stock -->
+    <div id="convertirStockModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="cerrarModal('convertirStockModal')">&times;</span>
+            <h2>🔄 Convertir Tamaños</h2>
+            <form onsubmit="convertirStock(event)">
+                <div class="input-group">
+                    <label>Tipo de conversión:</label>
+                    <select id="tipoConversion" required onchange="actualizarInfoConversion()">
+                        <option value="">Selecciona tipo</option>
+                        <option value="100a50">📦 100g → 50g (1 bolsa grande = 2 bolsas chicas)</option>
+                        <option value="50a100">📦 50g → 100g (2 bolsas chicas = 1 bolsa grande)</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Sabor:</label>
+                    <select id="saborConvertir" required onchange="mostrarStockConversion()">
+                        <option value="">Selecciona un sabor</option>
+                        <option value="fuego">🔥 Fuego</option>
+                        <option value="misterio">🌟 Misterio</option>
+                        <option value="habanero">🌶️ Habanero</option>
+                        <option value="jalapeño">🫑 Jalapeño</option>
+                        <option value="adobadas">🧂 Adobadas</option>
+                        <option value="naturales">🥬 Naturales</option>
+                        <option value="especias">✨ Especias</option>
+                        <option value="chipotle">🔥 Chipotle</option>
+                    </select>
+                </div>
+                <div id="stockConversionInfo" class="alert alert-warning hidden" style="margin: 15px 0;">
+                    <div id="stockOrigenTexto"></div>
+                    <div id="conversionResultado"></div>
+                </div>
+                <div class="input-group">
+                    <label id="labelCantidadConvertir">Cantidad a convertir:</label>
+                    <input type="number" id="cantidadConvertir" min="1" required onchange="calcularResultadoConversion()">
+                </div>
+                <button type="submit" class="btn btn-warning">🔄 Realizar Conversión</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Registrar Envío -->
+    <div id="envioModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="cerrarModal('envioModal')">&times;</span>
+            <h2>📦 Registrar Envío</h2>
+            <form onsubmit="registrarEnvio(event)">
+                <div class="input-group">
+                    <label>Cliente/Destino:</label>
+                    <input type="text" id="clienteEnvio" required placeholder="Nombre del cliente o destino">
+                </div>
+                <div class="input-group">
+                    <label>Sabor:</label>
+                    <select id="saborEnvio" required>
+                        <option value="">Selecciona un sabor</option>
+                        <option value="fuego">🔥 Fuego</option>
+                        <option value="misterio">🌟 Misterio</option>
+                        <option value="habanero">🌶️ Habanero</option>
+                        <option value="jalapeño">🫑 Jalapeño</option>
+                        <option value="adobadas">🧂 Adobadas</option>
+                        <option value="naturales">🥬 Naturales</option>
+                        <option value="especias">✨ Especias</option>
+                        <option value="chipotle">🔥 Chipotle</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Tamaño:</label>
+                    <select id="tamañoEnvio" required onchange="actualizarPrecioEnvio()">
+                        <option value="">Selecciona tamaño</option>
+                        <option value="50">50g</option>
+                        <option value="100">100g</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Cantidad:</label>
+                    <input type="number" id="cantidadEnvio" min="1" required onchange="calcularTotalEnvio()">
+                </div>
+                <div class="input-group">
+                    <label>Tipo de precio:</label>
+                    <select id="tipoPrecioEnvio" required onchange="calcularTotalEnvio()">
+                        <option value="mayoreo">Mayoreo</option>
+                        <option value="menudeo">Menudeo</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Costo de envío:</label>
+                    <input type="number" id="costoEnvio" step="0.01" min="0" required onchange="calcularTotalEnvio()">
+                </div>
+                <div class="alert alert-warning" style="margin: 15px 0;">
+                    <strong>Subtotal producto:</strong> $<span id="subtotalEnvio">0.00</span><br>
+                    <strong>Costo envío:</strong> $<span id="costoEnvioMostrar">0.00</span><br>
+                    <strong>Total a cobrar:</strong> $<span id="totalEnvio" style="font-size: 1.2em;">0.00</span>
+                </div>
+                <button type="submit" class="btn btn-secondary">📦 Registrar Envío</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Inventario -->
+    <div id="inventarioModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <span class="close" onclick="cerrarModal('inventarioModal')">&times;</span>
+            <h2>📦 Inventario Completo</h2>
+            <div id="inventarioContent"></div>
+        </div>
+    </div>
+
+    <!-- Modal: Reportes -->
+    <div id="reportesModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <span class="close" onclick="cerrarModal('reportesModal')">&times;</span>
+            <h2>📊 Reportes de Ventas</h2>
+            <div id="reportesContent" style="max-height: 60vh; overflow-y: auto;"></div>
+        </div>
+    </div>
+
+    <!-- Modal: Cancelar Venta -->
+    <div id="cancelarVentaModal" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <span class="close" onclick="cerrarModal('cancelarVentaModal')">&times;</span>
+            <h2>❌ Cancelar Venta</h2>
+            <div id="listadoVentasContent" style="max-height: 60vh; overflow-y: auto;"></div>
+        </div>
+    </div>
+
+    <!-- Modal: Tendencias -->
+    <div id="tendenciasModal" class="modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <span class="close" onclick="cerrarModal('tendenciasModal')">&times;</span>
+            <h2>📈 Tendencias de Ventas</h2>
+            <div id="tendenciasContent" style="max-height: 70vh; overflow-y: auto;"></div>
+        </div>
+    </div>
+
+    <!-- Alertas -->
+    <div id="alertContainer" style="position: fixed; top: 20px; right: 20px; z-index: 2000;"></div>
+
+    <script>
+        // Configuración de Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBA6Wjrf9sbRMcSmE-_If7Ecd_RkybwlgY",
+            authDomain: "malanguisimas-992db.firebaseapp.com",
+            projectId: "malanguisimas-992db",
+            storageBucket: "malanguisimas-992db.firebasestorage.app",
+            messagingSenderId: "279815762562",
+            appId: "1:279815762562:web:d77520d7a09ac3b36bfa9b",
+            measurementId: "G-6ERTR0YGT4"
+        };
+
+        // Código de acceso (cambia esto por tu código deseado)
+        const CODIGO_ACCESO = "MALCH2025";
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Variables globales
+        let usuarioAutenticado = false;
+        let carritoVenta = [];
+        let tipoVentaActual = 'menudeo';
+        
+        let sistemaData = {
+            inventario: {},
+            costos_unitarios: {},
+            ventas: [],
+            regaladas: [],
+            gastos: [],
+            ajustes: [],
+            conversiones: [],
+            envios: [],
+            sabores: ['fuego', 'misterio', 'habanero', 'jalapeño', 'adobadas', 'naturales', 'especias', 'chipotle'],
+            tamaños: [50, 100],
+            precios_mayoreo: {50: 20.0, 100: 33.0},
+            precios_menudeo: {50: 25.0, 100: 40.0},
+            precios_compra: {50: 15.0, 100: 23.0}
+        };
+
+        // Verificar si hay sesión activa
+        function verificarSesion() {
+            const sesionActiva = sessionStorage.getItem('malanguisimas_auth');
+            if (sesionActiva === 'true') {
+                usuarioAutenticado = true;
+                mostrarAplicacion();
+                cargarDatosFirebase();
+            }
+        }
+
+        // Iniciar sesión
+        function iniciarSesion(event) {
+            event.preventDefault();
+            const codigo = document.getElementById('codigoAcceso').value;
+            
+            if (codigo === CODIGO_ACCESO) {
+                usuarioAutenticado = true;
+                sessionStorage.setItem('malanguisimas_auth', 'true');
+                document.getElementById('loginError').classList.add('hidden');
+                mostrarAplicacion();
+                cargarDatosFirebase();
+            } else {
+                document.getElementById('loginError').classList.remove('hidden');
+            }
+        }
+
+        // Cerrar sesión
+        function cerrarSesion() {
+            sessionStorage.removeItem('malanguisimas_auth');
+            location.reload();
+        }
+
+        // Mostrar aplicación principal
+        function mostrarAplicacion() {
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('mainApp').classList.add('active');
+            document.getElementById('syncStatus').classList.remove('hidden');
+        }
+
+        // Cargar datos desde Firebase
+        async function cargarDatosFirebase() {
+            try {
+                actualizarEstadoSync('syncing');
+                
+                // Cargar inventario
+                const inventarioSnap = await db.collection('inventario').get();
+                sistemaData.inventario = {};
+                inventarioSnap.forEach(doc => {
+                    sistemaData.inventario[doc.id] = doc.data().cantidad;
+                });
+
+                // Cargar costos
+                const costosSnap = await db.collection('costos').get();
+                sistemaData.costos_unitarios = {};
+                costosSnap.forEach(doc => {
+                    sistemaData.costos_unitarios[doc.id] = doc.data().costo;
+                });
+
+                // Cargar ventas del día
+                const hoy = new Date().toISOString().split('T')[0];
+                // Cargar ventas (últimas 100)
+                const ventasSnap = await db.collection('ventas')
+                    .orderBy('fecha', 'desc')
+                    .limit(100)
+                    .get();
+                sistemaData.ventas = [];
+                ventasSnap.forEach(doc => {
+                    sistemaData.ventas.push({id: doc.id, ...doc.data()});
+                });
+
+                // Cargar regaladas del día
+                const regaladashSnap = await db.collection('regaladas')
+                    .orderBy('fecha', 'desc')
+                    .limit(50)
+                    .get();
+                sistemaData.regaladas = [];
+                regaladashSnap.forEach(doc => {
+                    sistemaData.regaladas.push({id: doc.id, ...doc.data()});
+                });
+
+                // Cargar gastos del día
+                const gastosSnap = await db.collection('gastos')
+                    .orderBy('fecha', 'desc')
+                    .limit(50)
+                    .get();
+                sistemaData.gastos = [];
+                gastosSnap.forEach(doc => {
+                    sistemaData.gastos.push({id: doc.id, ...doc.data()});
+                });
+
+                // Cargar ajustes del día
+                const ajustesSnap = await db.collection('ajustes')
+                    .orderBy('fecha', 'desc')
+                    .limit(50)
+                    .get();
+                sistemaData.ajustes = [];
+                ajustesSnap.forEach(doc => {
+                    sistemaData.ajustes.push({id: doc.id, ...doc.data()});
+                });
+
+                // Cargar conversiones (últimas 50)
+                const conversionesSnap = await db.collection('conversiones')
+                    .orderBy('fecha', 'desc')
+                    .limit(50)
+                    .get();
+                sistemaData.conversiones = [];
+                conversionesSnap.forEach(doc => {
+                    sistemaData.conversiones.push({id: doc.id, ...doc.data()});
+                });
+
+                // Cargar envíos del día
+                const enviosSnap = await db.collection('envios')
+                    .orderBy('fecha', 'desc')
+                    .limit(100)
+                    .get();
+                sistemaData.envios = [];
+                enviosSnap.forEach(doc => {
+                    sistemaData.envios.push({id: doc.id, ...doc.data()});
+                });
+
+                // Verificar si es necesario inicializar productos
+                if (Object.keys(sistemaData.inventario).length === 0) {
+                    await crearProductosIniciales();
+                }
+
+                actualizarEstadisticas();
+                actualizarEstadoSync('online');
+                actualizarUltimaSincronizacion();
+                
+            } catch (error) {
+                console.error('Error al cargar datos:', error);
+                mostrarAlerta('⚠️ Error al cargar datos. Verifica tu conexión.', 'error');
+                actualizarEstadoSync('offline');
+            }
+        }
+
+        // Crear productos iniciales en Firebase
+        async function crearProductosIniciales() {
+            const batch = db.batch();
+            
+            sistemaData.sabores.forEach(sabor => {
+                sistemaData.tamaños.forEach(tamaño => {
+                    const codigo = `${sabor}_${tamaño}g`;
+                    
+                    // Crear documento de inventario
+                    const invRef = db.collection('inventario').doc(codigo);
+                    batch.set(invRef, { cantidad: 0 });
+                    
+                    // Crear documento de costos
+                    const costoRef = db.collection('costos').doc(codigo);
+                    batch.set(costoRef, { costo: sistemaData.precios_compra[tamaño] });
+                    
+                    sistemaData.inventario[codigo] = 0;
+                    sistemaData.costos_unitarios[codigo] = sistemaData.precios_compra[tamaño];
+                });
+            });
+            
+            await batch.commit();
+        }
+
+        // Sincronizar datos manualmente
+        async function sincronizarDatos() {
+            await cargarDatosFirebase();
+            mostrarAlerta('✅ Datos sincronizados correctamente', 'success');
+        }
+
+        // Actualizar estado de sincronización
+        function actualizarEstadoSync(estado) {
+            const syncStatus = document.getElementById('syncStatus');
+            const syncText = document.getElementById('syncText');
+            
+            syncStatus.classList.remove('offline', 'syncing');
+            
+            switch(estado) {
+                case 'online':
+                    syncText.textContent = '✅ En línea';
+                    break;
+                case 'offline':
+                    syncText.textContent = '❌ Sin conexión';
+                    syncStatus.classList.add('offline');
+                    break;
+                case 'syncing':
+                    syncText.textContent = '🔄 Sincronizando...';
+                    syncStatus.classList.add('syncing');
+                    break;
+            }
+        }
+
+        // Actualizar última sincronización
+        function actualizarUltimaSincronizacion() {
+            const ahora = new Date();
+            const hora = ahora.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            document.getElementById('ultimaSinc').textContent = hora;
+        }
+
+        // Funciones de modal
+        function mostrarModal(modalId) {
+            document.getElementById(modalId).style.display = 'block';
+        }
+
+        function cerrarModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+            // Limpiar el campo de stock actual cuando se cierra el modal
+            if (modalId === 'quitarStockModal') {
+                document.getElementById('stockActualInfo').classList.add('hidden');
+                document.getElementById('saborQuitar').value = '';
+                document.getElementById('tamañoQuitar').value = '';
+                document.getElementById('cantidadQuitar').value = '';
+            } else if (modalId === 'convertirStockModal') {
+                document.getElementById('stockConversionInfo').classList.add('hidden');
+                document.getElementById('tipoConversion').value = '';
+                document.getElementById('saborConvertir').value = '';
+                document.getElementById('cantidadConvertir').value = '';
+            } else if (modalId === 'cancelarVentaModal') {
+                document.getElementById('listadoVentasContent').innerHTML = '';
+            } else if (modalId === 'tendenciasModal') {
+                document.getElementById('tendenciasContent').innerHTML = '';
+            } else if (modalId === 'ventaMultipleModal') {
+                limpiarCarrito();
+            }
+        }
+
+        // Mostrar stock actual
+        function mostrarStockActual() {
+            const sabor = document.getElementById('saborQuitar').value;
+            const tamaño = document.getElementById('tamañoQuitar').value;
+            
+            if (sabor && tamaño) {
+                const codigo = `${sabor}_${tamaño}g`;
+                const stockActual = sistemaData.inventario[codigo] || 0;
+                
+                document.getElementById('stockActualTexto').textContent = stockActual;
+                document.getElementById('stockActualInfo').classList.remove('hidden');
+                
+                // Actualizar el máximo de cantidad a quitar
+                document.getElementById('cantidadQuitar').max = stockActual;
+            } else {
+                document.getElementById('stockActualInfo').classList.add('hidden');
+            }
+        }
+
+        // Agregar stock
+        async function agregarStock(event) {
+            event.preventDefault();
+            
+            const sabor = document.getElementById('saborStock').value;
+            const tamaño = parseInt(document.getElementById('tamañoStock').value);
+            const cantidad = parseInt(document.getElementById('cantidadStock').value);
+            
+            const codigo = `${sabor}_${tamaño}g`;
+            
+            try {
+                actualizarEstadoSync('syncing');
+                
+                // Actualizar en Firebase
+                const invRef = db.collection('inventario').doc(codigo);
+                const doc = await invRef.get();
+                const stockActual = doc.exists ? doc.data().cantidad : 0;
+                
+                await invRef.set({
+                    cantidad: stockActual + cantidad
+                });
+                
+                // Actualizar localmente
+                sistemaData.inventario[codigo] = stockActual + cantidad;
+                
+                mostrarAlerta(`✅ Agregadas ${cantidad} unidades de ${sabor} ${tamaño}g`, 'success');
+                
+                actualizarEstadisticas();
+                actualizarEstadoSync('online');
+                cerrarModal('agregarStockModal');
+                
+                // Limpiar formulario
+                document.getElementById('saborStock').value = '';
+                document.getElementById('tamañoStock').value = '';
+                document.getElementById('cantidadStock').value = '';
+                
+            } catch (error) {
+                console.error('Error al agregar stock:', error);
+                mostrarAlerta('❌ Error al agregar stock', 'error');
+                actualizarEstadoSync('offline');
+            }
+        }
+
+        // Quitar stock
+        async function quitarStock(event) {
+            event.preventDefault();
+            
+            const sabor = document.getElementById('saborQuitar').value;
+            const tamaño = parseInt(document.getElementById('tamañoQuitar').value);
+            const cantidad = parseInt(document.getElementById('cantidadQuitar').value);
+            const motivo = document.getElementById('motivoQuitar').value;
+            
+            const codigo = `${sabor}_${tamaño}g`;
+            const stockActual = sistemaData.inventario[codigo] || 0;
+            
+            if (stockActual < cantidad) {
+                mostrarAlerta(`❌ No puedes quitar más de lo que hay en stock! Stock actual: ${stockActual}`, 'error');
+                return;
+            }
+            
+            try {
+                actualizarEstadoSync('syncing');
+                
+                // Crear registro de ajuste
+                const ajuste = {
+                    fecha: new Date().toISOString(),
+                    producto: `${sabor.charAt(0).toUpperCase() + sabor.slice(1)} ${tamaño}g`,
+                    codigo: codigo,
+                    cantidad: -cantidad,
+                    motivo: motivo,
+                    tipo: 'reduccion'
+                };
+                
+                await db.collection('ajustes').add(ajuste);
+                
+                // Actualizar inventario en Firebase
+                await db.collection('inventario').doc(codigo).set({
+                    cantidad: stockActual - cantidad
+                });
+                
+                // Actualizar localmente
+                sistemaData.ajustes.push(ajuste);
+                sistemaData.inventario[codigo] = stockActual - cantidad;
+                
+                mostrarAlerta(`❌ Quitadas ${cantidad} unidades de ${sabor} ${tamaño}g<br>Motivo: ${motivo}`, 'warning');
+                
+                actualizarEstadisticas();
+                actualizarEstadoSync('online');
+                cerrarModal('quitarStockModal');
+                
+            } catch (error) {
+                console.error('Error al quitar stock:', error);
+                mostrarAlerta('❌ Error al quitar stock', 'error');
+                actualizarEstadoSync('offline');
+            }
+        }
+
+        // Mostrar inventario
+        function mostrarInventario() {
+            let html = '<div class="inventory-grid">';
+            
+            for (const [codigo, stock] of Object.entries(sistemaData.inventario)) {
+                const [sabor, tamañoStr] = codigo.split('_');
+                const tamaño = parseInt(tamañoStr);
+                const saborTitulo = sabor.charAt(0).toUpperCase() + sabor.slice(1);
+                
+                let estadoClass, estadoTexto;
+                if (stock > 10) {
+                    estadoClass = 'stock-good';
+                    estadoTexto = 'En Stock';
+                } else if (stock > 0) {
+                    estadoClass = 'stock-low';
+                    estadoTexto = 'Stock Bajo';
+                } else {
+                    estadoClass = 'stock-out';
+                    estadoTexto = 'Agotado';
+                }
+                
+                const costo = sistemaData.costos_unitarios[codigo] || 0;
+                const precioMayoreo = sistemaData.precios_mayoreo[tamaño];
+                const precioMenudeo = sistemaData.precios_menudeo[tamaño];
+                
+                html += `
+                    <div class="product-card">
+                        <div class="product-name">🌶️ ${saborTitulo} ${tamaño}g</div>
+                        <div class="stock-info">
+                            <span>Stock: ${stock}</span>
+                            <span class="stock-badge ${estadoClass}">${estadoTexto}</span>
+                        </div>
+                        <div style="margin-top: 10px; font-size: 0.9em; color: #666;">
+                            <div>Mayoreo: $${precioMayoreo.toFixed(2)} | Menudeo: $${precioMenudeo.toFixed(2)}</div>
+                            <div>Costo base: $${costo.toFixed(2)}</div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            html += '</div>';
+            document.getElementById('inventarioContent').innerHTML = html;
+            mostrarModal('inventarioModal');
+        }
+
+        // Actualizar costos
+        async function actualizarCostos(event) {
+            event.preventDefault();
+            
+            const sabor = document.getElementById('saborCosto').value;
+            const tamaño = parseInt(document.getElementById('tamañoCosto').value);
+            const costo = parseFloat(document.getElementById('costoProduccion').value);
+            
+            const codigo = `${sabor}_${tamaño}g`;
+            
+            try {
+                actualizarEstadoSync('syncing');
+                
+                // Actualizar en Firebase
+                await db.collection('costos').doc(codigo).set({
+                    costo: costo
+                });
+                
+                // Actualizar localmente
+                sistemaData.costos_unitarios[codigo] = costo;
+                
+                const precioMayoreo = sistemaData.precios_mayoreo[tamaño];
+                const precioMenudeo = sistemaData.precios_menudeo[tamaño];
+                
+                const margenMayoreo = ((precioMayoreo - costo) / precioMayoreo * 100).toFixed(1);
+                const margenMenudeo = ((precioMenudeo - costo) / precioMenudeo * 100).toFixed(1);
+                
+                mostrarAlerta(`✅ Costo base actualizado: $${costo.toFixed(2)}<br>Margen Mayoreo: ${margenMayoreo}% | Margen Menudeo: ${margenMenudeo}%`, 'success');
+                
+                actualizarEstadoSync('online');
+                cerrarModal('actualizarCostosModal');
+                
+                // Limpiar formulario
+                document.getElementById('saborCosto').value = '';
+                document.getElementById('tamañoCosto').value = '';
+                document.getElementById('costoProduccion').value = '';
+                
+            } catch (error) {
+                console.error('Error al actualizar costo:', error);
+                mostrarAlerta('❌ Error al actualizar costo', 'error');
+                actualizarEstadoSync('offline');
+            }
+        }
+
+        // Funciones para venta múltiple
+        function prepararVentaMultiple(tipo) {
+            tipoVentaActual = tipo;
+            carritoVenta = [];
+            
+            const titulo = tipo === 'menudeo' ? '🛒 Venta Menudeo' : '🏪 Venta Mayoreo';
+            document.getElementById('tituloVentaMultiple').textContent = titulo;
+            
+            limpiarCarrito();
+            mostrarModal('ventaMultipleModal');
+        }
+        
+        function limpiarCarrito() {
+            carritoVenta = [];
+            actualizarVistaCarrito();
+            document.getElementById('saborVentaMultiple').value = '';
+            document.getElementById('tamañoVentaMultiple').value = '';
+            document.getElementById('cantidadVentaMultiple').value = '';
+            document.getElementById('costoPersonalizado').checked = false;
+            document.getElementById('costoTotalPedido').value = '';
+            document.getElementById('costoPersonalizadoContainer').classList.add('hidden');
+        }
+        
+        function agregarAlCarrito() {
+            const sabor = document.getElementById('saborVentaMultiple').value;
+            const tamaño = parseInt(document.getElementById('tamañoVentaMultiple').value);
+            const cantidad = parseInt(document.getElementById('cantidadVentaMultiple').value);
+            
+            if (!sabor || !tamaño || !cantidad || cantidad <= 0) {
+                mostrarAlerta('❌ Completa todos los campos correctamente', 'error');
+                return;
+            }
+            
+            const codigo = `${sabor}_${tamaño}g`;
+            const stockActual = sistemaData.inventario[codigo] || 0;
+            
+            // Verificar stock disponible considerando lo que ya está en el carrito
+            const enCarrito = carritoVenta
+                .filter(item => item.codigo === codigo)
+                .reduce((sum, item) => sum + item.cantidad, 0);
+            
+            if (stockActual < (cantidad + enCarrito)) {
+                mostrarAlerta(`❌ Stock insuficiente! Disponible: ${stockActual - enCarrito}`, 'error');
+                return;
+            }
+            
+            const precioUnitario = tipoVentaActual === 'menudeo' ? 
+                sistemaData.precios_menudeo[tamaño] : 
+                sistemaData.precios_mayoreo[tamaño];
+            
+            const item = {
+                codigo: codigo,
+                sabor: sabor,
+                tamaño: tamaño,
+                cantidad: cantidad,
+                precioUnitario: precioUnitario,
+                costoUnitario: sistemaData.costos_unitarios[codigo] || 0,
+                subtotal: precioUnitario * cantidad
+            };
+            
+            carritoVenta.push(item);
+            actualizarVistaCarrito();
+            
+            // Limpiar campos
+            document.getElementById('saborVentaMultiple').value = '';
+            document.getElementById('tamañoVentaMultiple').value = '';
+            document.getElementById('cantidadVentaMultiple').value = '';
+            
+            mostrarAlerta('✅ Producto agregado al carrito', 'success');
+        }
+        
+        function quitarDelCarrito(index) {
+            carritoVenta.splice(index, 1);
+            actualizarVistaCarrito();
+        }
+        
+        function actualizarVistaCarrito() {
+            const carritoDiv = document.getElementById('carritoVenta');
+            
+            if (carritoVenta.length === 0) {
+                carritoDiv.innerHTML = '<div class="carrito-vacio">El carrito está vacío</div>';
+                document.getElementById('btnConfirmarVenta').disabled = true;
+                actualizarTotalesCarrito();
+                return;
+            }
+            
+            let html = '';
+            carritoVenta.forEach((item, index) => {
+                const saborTitulo = item.sabor.charAt(0).toUpperCase() + item.sabor.slice(1);
+                html += `
+                    <div class="carrito-item">
+                        <div>
+                            <strong>${saborTitulo} ${item.tamaño}g</strong> x${item.cantidad}
+                            <br><small>$${item.precioUnitario.toFixed(2)} c/u = $${item.subtotal.toFixed(2)}</small>
+                        </div>
+                        <button type="button" class="btn-inline" onclick="quitarDelCarrito(${index})">❌</button>
+                    </div>
+                `;
+            });
+            
+            carritoDiv.innerHTML = html;
+            document.getElementById('btnConfirmarVenta').disabled = false;
+            actualizarTotalesCarrito();
+        }
+        
+        function toggleCostoPersonalizado() {
+            const checkbox = document.getElementById('costoPersonalizado');
+            const container = document.getElementById('costoPersonalizadoContainer');
+            
+            if (checkbox.checked) {
+                container.classList.remove('hidden');
+            } else {
+                container.classList.add('hidden');
+                document.getElementById('costoTotalPedido').value = '';
+            }
+            
+            actualizarTotalesCarrito();
+        }
+        
+        function actualizarTotalesCarrito() {
+            let subtotal = 0;
+            let costoTotal = 0;
+            
+            carritoVenta.forEach(item => {
+                subtotal += item.subtotal;
+                costoTotal += item.costoUnitario * item.cantidad;
+            });
+            
+            // Si hay costo personalizado, usarlo
+            if (document.getElementById('costoPersonalizado').checked) {
+                const costoPersonalizado = parseFloat(document.getElementById('costoTotalPedido').value) || 0;
+                if (costoPersonalizado > 0) {
+                    costoTotal = costoPersonalizado;
+                }
+            }
+            
+            const ganancia = subtotal - costoTotal;
+            
+            document.getElementById('subtotalVenta').textContent = subtotal.toFixed(2);
+            document.getElementById('costoVenta').textContent = costoTotal.toFixed(2);
+            document.getElementById('gananciaVenta').textContent = ganancia.toFixed(2);
+            document.getElementById('totalVenta').textContent = subtotal.toFixed(2);
+        }
+        
+        async function confirmarVentaMultiple() {
+            if (carritoVenta.length === 0) {
+                mostrarAlerta('❌ El carrito está vacío', 'error');
+                return;
+            }
+            
+            // Verificar stock final
+            for (const item of carritoVenta) {
+                const stockActual = sistemaData.inventario[item.codigo] || 0;
+                if (stockActual < item.cantidad) {
+                    mostrarAlerta(`❌ Stock insuficiente para ${item.sabor} ${item.tamaño}g`, 'error');
+                    return;
+                }
+            }
+            
+            try {
+                actualizarEstadoSync('syncing');
+                
+                // Calcular totales
+                let totalVenta = 0;
+                let costoTotal = 0;
+                
+                carritoVenta.forEach(item => {
+                    totalVenta += item.subtotal;
+                    costoTotal += item.costoUnitario * item.cantidad;
+                });
+                
+                // Si hay costo personalizado, usarlo
+                if (document.getElementById('costoPersonalizado').checked) {
+                    const costoPersonalizado = parseFloat(document.getElementById('costoTotalPedido').value) || 0;
+                    if (costoPersonalizado > 0) {
+                        costoTotal = costoPersonalizado;
+                    }
+                }
+                
+                const ganancia = totalVenta - costoTotal;
+                
+                // Crear detalle de productos
+                const productos = carritoVenta.map(item => ({
+                    codigo: item.codigo,
+                    sabor: item.sabor,
+                    tamaño: item.tamaño,
+                    cantidad: item.cantidad,
+                    precio_unitario: item.precioUnitario,
+                    subtotal: item.subtotal
+                }));
+                
+                // Crear venta en Firebase
+                const venta = {
+                    fecha: new Date().toISOString(),
+                    tipo_venta: tipoVentaActual,
+                    productos: productos,
+                    total_venta: totalVenta,
+                    costo_total: costoTotal,
+                    costo_personalizado: document.getElementById('costoPersonalizado').checked,
+                    ganancia: ganancia,
+                    cantidad_total: carritoVenta.reduce((sum, item) => sum + item.cantidad, 0)
+                };
+                
+                await db.collection('ventas').add(venta);
+                
+                // Actualizar inventario para cada producto
+                const batch = db.batch();
+                for (const item of carritoVenta) {
+                    const stockActual = sistemaData.inventario[item.codigo];
+                    const invRef = db.collection('inventario').doc(item.codigo);
+                    batch.set(invRef, { cantidad: stockActual - item.cantidad });
+                    
+                    // Actualizar localmente
+                    sistemaData.inventario[item.codigo] = stockActual - item.cantidad;
+                }
+                await batch.commit();
+                
+                // Actualizar datos locales
+                sistemaData.ventas.push(venta);
+                
+                // Crear resumen de productos para mostrar
+                const resumenProductos = carritoVenta.map(item => 
+                    `${item.sabor} ${item.tamaño}g x${item.cantidad}`
+                ).join(', ');
+                
+                mostrarAlerta(`✅ Venta registrada<br>Productos: ${resumenProductos}<br>Total: $${totalVenta.toFixed(2)}<br>Ganancia: $${ganancia.toFixed(2)}`, 'success');
+                
+                actualizarEstadisticas();
+                actualizarEstadoSync('online');
+                cerrarModal('ventaMultipleModal');
+                
+            } catch (error) {
+                console.error('Error al registrar venta:', error);
+                mostrarAlerta('❌ Error al registrar venta', 'error');
+                actualizarEstadoSync('offline');
+            }
+        }
+
+        // Registrar gasto
+        async function registrarGasto(event) {
+            event.preventDefault();
+            
+            const concepto = document.getElementById('conceptoGasto').value;
+            const monto = parseFloat(document.getElementById('montoGasto').value);
+            const categoria = document.getElementById('categoriaGasto').value;
+            
+            try {
+                actualizarEstadoSync('syncing');
+                
+                const gasto = {
+                    fecha: new Date().toISOString(),
+                    concepto: concepto,
+                    monto: monto,
+                    categoria: categoria
+                };
+                
+                await db.collection('gastos').add(gasto);
+                
+                sistemaData.gastos.push(gasto);
+                
+                mostrarAlerta(`✅ Gasto registrado: ${concepto} - $${monto.toFixed(2)}`, 'success');
+                
+                actualizarEstadoSync('online');
+                cerrarModal('gastosModal');
+                
+                // Limpiar formulario
+                document.getElementById('conceptoGasto').value = '';
+                document.getElementById('montoGasto').value = '';
+                document.getElementById('categoriaGasto').value = 'operativo';
+                
+            } catch (error) {
+                console.error('Error al registrar gasto:', error);
+                mostrarAlerta('❌ Error al registrar gasto', 'error');
+                actualizarEstadoSync('offline');
+            }
+        }
+
+        // Registrar regalada
+        async function registrarRegalada(event) {
+            event.preventDefault();
+            
+            const sabor = document.getElementById('saborRegalada').value;
+            const tamaño = parseInt(document.getElementById('tamañoRegalada').value);
+            const cantidad = parseInt(document.getElementById('cantidadRegalada').value);
+            const puntoVenta = document.getElementById('puntoVenta').value;
+            
+            const codigo = `${sabor}_${tamaño}g`;
+            const stockActual = sistemaData.inventario[codigo] || 0;
+            
+            if (stockActual < cantidad) {
+                mostrarAlerta(`❌ Stock insuficiente! Disponible: ${stockActual}`, 'error');
+                return;
+            }
+            
+            try {
+                actualizarEstadoSync('syncing');
+                
+                const costoUnitario = sistemaData.costos_unitarios[codigo] || 0;
+                const costoTotal = costoUnitario * cantidad;
+                
+                const regalada = {
+                    fecha: new Date().toISOString(),
+                    producto: `${sabor.charAt(0).toUpperCase() + sabor.slice(1)} ${tamaño}g`,
+                    codigo: codigo,
+                    cantidad: cantidad,
+                    punto_venta: puntoVenta,
+                    costo_total: costoTotal
+                };
+                
+                await db.collection('regaladas').add(regalada);
+                
+                // Actualizar inventario
+                await db.collection('inventario').doc(codigo).set({
+                    cantidad: stockActual - cantidad
+                });
+                
+                sistemaData.regaladas.push(regalada);
+                sistemaData.inventario[codigo] = stockActual - cantidad;
+                
+                mostrarAlerta(`🎁 Regalada registrada: ${cantidad}x ${sabor} ${tamaño}g`, 'warning');
+                
+                actualizarEstadisticas();
+                actualizarEstadoSync('online');
+                cerrarModal('regaladaModal');
+                
+                // Limpiar formulario
+                document.getElementById('saborRegalada').value = '';
+                document.getElementById('tamañoRegalada').value = '';
+                document.getElementById('cantidadRegalada').value = '';
+                document.getElementById('puntoVenta').value = '';
+                
+            } catch (error) {
+                console.error('Error al registrar regalada:', error);
+                mostrarAlerta('❌ Error al registrar regalada', 'error');
+                actualizarEstadoSync('offline');
+            }
+        }
+
+        // Mostrar reportes
+        function mostrarReportes() {
+            const hoy = new Date().toISOString().split('T')[0];
+            const ventasHoy = sistemaData.ventas.filter(venta => venta.fecha.split('T')[0] === hoy);
+            const regaladashHoy = sistemaData.regaladas.filter(regalada => regalada.fecha.split('T')[0] === hoy);
+            const ajustesHoy = sistemaData.ajustes.filter(ajuste => ajuste.fecha.split('T')[0] === hoy);
+            const conversionesHoy = sistemaData.conversiones.filter(conversion => conversion.fecha.split('T')[0] === hoy);
+            const enviosHoy = sistemaData.envios.filter(envio => envio.fecha.split('T')[0] === hoy);
+            
+            let html = '<h3>📊 Resumen del Día</h3>';
+            
+            if (ventasHoy.length === 0 && regaladashHoy.length === 0 && ajustesHoy.length === 0 && conversionesHoy.length === 0 && enviosHoy.length === 0) {
+                html += '<p>No hay actividad registrada para hoy.</p>';
+                document.getElementById('reportesContent').innerHTML = html;
+                mostrarModal('reportesModal');
+                return;
+            }
+            
+            let totalIngresos = 0;
+            let totalCostos = 0;
+            let costoRegaladas = 0;
+            let gananciaProductos = 0;
+            let totalEnvios = 0;
+            
+            // Mostrar ventas
+            if (ventasHoy.length > 0) {
+                html += '<h4>💰 Ventas del Día</h4>';
+                ventasHoy.forEach(venta => {
+                    const tipoEmoji = venta.tipo_venta === 'mayoreo' ? '🏪' : '🛒';
+                    
+                    if (venta.productos && Array.isArray(venta.productos)) {
+                        // Venta múltiple
+                        const resumenProductos = venta.productos.map(p => 
+                            `${p.sabor} ${p.tamaño}g x${p.cantidad}`
+                        ).join(', ');
+                        
+                        html += `<div style="padding: 10px; margin: 5px 0; background: #e8f5e8; border-radius: 5px;">
+                            ${tipoEmoji} <strong>Venta múltiple:</strong> ${resumenProductos}
+                            <br>Total: $${venta.total_venta.toFixed(2)}
+                            ${venta.costo_personalizado ? '<br><small>* Costo personalizado aplicado</small>' : ''}
+                            <br><small>Ganancia: $${venta.ganancia.toFixed(2)}</small>
+                        </div>`;
+                    } else {
+                        // Venta simple (formato antiguo)
+                        html += `<div style="padding: 10px; margin: 5px 0; background: #e8f5e8; border-radius: 5px;">
+                            ${tipoEmoji} ${venta.producto} x${venta.cantidad} - $${venta.total_venta.toFixed(2)}
+                            <br><small>Ganancia: $${venta.ganancia.toFixed(2)}</small>
+                        </div>`;
+                    }
+                    
+                    totalIngresos += venta.total_venta;
+                    totalCostos += venta.costo_total;
+                    gananciaProductos += venta.ganancia;
+                });
+            }
+            
+            // Mostrar envíos
+            if (enviosHoy.length > 0) {
+                html += '<h4>📦 Envíos del Día</h4>';
+                enviosHoy.forEach(envio => {
+                    html += `<div style="padding: 10px; margin: 5px 0; background: #e0f2ff; border-radius: 5px;">
+                        📦 ${envio.cliente} - ${envio.producto} x${envio.cantidad}
+                        <br>💰 Producto: $${envio.subtotal_producto.toFixed(2)} + Envío: $${envio.costo_envio.toFixed(2)} = $${envio.total_venta.toFixed(2)}
+                        <br><small>Ganancia del producto: $${envio.ganancia_producto.toFixed(2)}</small>
+                    </div>`;
+                    
+                    totalIngresos += envio.total_venta;
+                    totalCostos += envio.costo_producto;
+                    gananciaProductos += envio.ganancia_producto;
+                    totalEnvios += envio.costo_envio;
+                });
+            }
+            
+            // Mostrar regaladas
+            if (regaladashHoy.length > 0) {
+                html += '<h4>🎁 Regaladas del Día</h4>';
+                regaladashHoy.forEach(regalada => {
+                    const puntoTexto = regalada.punto_venta ? ` (${regalada.punto_venta})` : '';
+                    html += `<div style="padding: 10px; margin: 5px 0; background: #fff3cd; border-radius: 5px;">
+                        🎁 ${regalada.producto} x${regalada.cantidad}${puntoTexto}
+                    </div>`;
+                    
+                    costoRegaladas += regalada.costo_total || 0;
+                });
+            }
+            
+            // Mostrar conversiones
+            if (conversionesHoy.length > 0) {
+                html += '<h4>🔄 Conversiones del Día</h4>';
+                conversionesHoy.forEach(conversion => {
+                    html += `<div style="padding: 10px; margin: 5px 0; background: #f0e0ff; border-radius: 5px;">
+                        🔄 ${conversion.sabor.charAt(0).toUpperCase() + conversion.sabor.slice(1)}: ${conversion.descripcion}
+                    </div>`;
+                });
+            }
+            
+            // Mostrar ajustes
+            if (ajustesHoy.length > 0) {
+                html += '<h4>📋 Ajustes de Inventario</h4>';
+                ajustesHoy.forEach(ajuste => {
+                    html += `<div style="padding: 10px; margin: 5px 0; background: #ffe0e0; border-radius: 5px;">
+                        ❌ ${ajuste.producto} x${Math.abs(ajuste.cantidad)} - ${ajuste.motivo}
+                    </div>`;
+                });
+            }
+            
+            const gananciaTotal = totalIngresos - totalCostos - costoRegaladas;
+            
+            html += `
+                <div style="margin-top: 20px; padding: 20px; background: #e8f5e8; border-radius: 10px;">
+                    <h4>💰 Resumen Financiero</h4>
+                    <p><strong>Ingresos totales:</strong> $${totalIngresos.toFixed(2)}</p>
+                    <p><strong>Costos de productos:</strong> $${totalCostos.toFixed(2)}</p>
+                    <p><strong>Ganancia en productos:</strong> $${gananciaProductos.toFixed(2)}</p>
+                    <p><strong>Ingresos por envíos:</strong> $${totalEnvios.toFixed(2)}</p>
+                    <p><strong>Costo regaladas:</strong> $${costoRegaladas.toFixed(2)}</p>
+                    <hr style="margin: 10px 0;">
+                    <p><strong>Ganancia neta del día:</strong> $${gananciaTotal.toFixed(2)}</p>
+                </div>
+            `;
+            
+            document.getElementById('reportesContent').innerHTML = html;
+            mostrarModal('reportesModal');
+        }
+
+        // Actualizar estadísticas
+        function actualizarEstadisticas() {
+            const hoy = new Date().toISOString().split('T')[0];
+            const ventasHoy = sistemaData.ventas.filter(venta => venta.fecha.split('T')[0] === hoy);
+            const enviosHoy = sistemaData.envios.filter(envio => envio.fecha.split('T')[0] === hoy);
+            
+            let ingresosHoy = 0;
+            ventasHoy.forEach(venta => {
+                ingresosHoy += venta.total_venta;
+            });
+            
+            enviosHoy.forEach(envio => {
+                ingresosHoy += envio.total_venta;
+            });
+            
+            let productosConStock = 0;
+            Object.values(sistemaData.inventario).forEach(stock => {
+                if (stock > 0) productosConStock++;
+            });
+            
+            document.getElementById('ventasHoy').textContent = ventasHoy.length + enviosHoy.length;
+            document.getElementById('ingresosHoy').textContent = `$${ingresosHoy.toFixed(0)}`;
+            document.getElementById('productosStock').textContent = productosConStock;
+        }
+
+        // Mostrar alertas
+        function mostrarAlerta(mensaje, tipo) {
+            const alertContainer = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${tipo}`;
+            alert.innerHTML = mensaje;
+            alert.style.marginBottom = '10px';
+            alert.style.animation = 'slideIn 0.3s ease';
+            
+            alertContainer.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+
+        // Funciones de conversión
+        function actualizarInfoConversion() {
+            const tipo = document.getElementById('tipoConversion').value;
+            const labelCantidad = document.getElementById('labelCantidadConvertir');
+            
+            if (tipo === '100a50') {
+                labelCantidad.textContent = 'Cantidad de bolsas de 100g a convertir:';
+            } else if (tipo === '50a100') {
+                labelCantidad.textContent = 'Cantidad de bolsas de 50g a convertir (múltiplo de 2):';
+            }
+            
+            mostrarStockConversion();
+        }
+
+        function mostrarStockConversion() {
+            const tipo = document.getElementById('tipoConversion').value;
+            const sabor = document.getElementById('saborConvertir').value;
+            
+            if (!tipo || !sabor) {
+                document.getElementById('stockConversionInfo').classList.add('hidden');
+                return;
+            }
+            
+            let stockOrigen, stockDestino, textoOrigen, textoDestino;
+            
+            if (tipo === '100a50') {
+                const codigo100 = `${sabor}_100g`;
+                const codigo50 = `${sabor}_50g`;
+                stockOrigen = sistemaData.inventario[codigo100] || 0;
+                stockDestino = sistemaData.inventario[codigo50] || 0;
+                textoOrigen = `Stock actual 100g: ${stockOrigen} unidades`;
+                textoDestino = `Stock actual 50g: ${stockDestino} unidades`;
+            } else {
+                const codigo50 = `${sabor}_50g`;
+                const codigo100 = `${sabor}_100g`;
+                stockOrigen = sistemaData.inventario[codigo50] || 0;
+                stockDestino = sistemaData.inventario[codigo100] || 0;
+                textoOrigen = `Stock actual 50g: ${stockOrigen} unidades`;
+                textoDestino = `Stock actual 100g: ${stockDestino} unidades`;
+            }
+            
+            document.getElementById('stockOrigenTexto').innerHTML = `<strong>${textoOrigen}</strong><br><strong>${textoDestino}</strong>`;
+            document.getElementById('stockConversionInfo').classList.remove('hidden');
+            
+            calcularResultadoConversion();
+        }
+
+        function calcularResultadoConversion() {
+            const tipo = document.getElementById('tipoConversion').value;
+            const cantidad = parseInt(document.getElementById('cantidadConvertir').value) || 0;
+            
+            if (!tipo || cantidad === 0) return;
+            
+            let resultado = '';
+            if (tipo === '100a50') {
+                resultado = `<br>🔄 Resultado: ${cantidad} bolsas de 100g → ${cantidad * 2} bolsas de 50g`;
+            } else {
+                if (cantidad % 2 !== 0) {
+                    resultado = `<br>⚠️ Necesitas un número par de bolsas de 50g para convertir`;
+                    document.getElementById('cantidadConvertir').setCustomValidity('Debe ser un número par');
+                } else {
+                    resultado = `<br>🔄 Resultado: ${cantidad} bolsas de 50g → ${cantidad / 2} bolsas de 100g`;
+                    document.getElementById('cantidadConvertir').setCustomValidity('');
+                }
+            }
+            
+            document.getElementById('conversionResultado').innerHTML = resultado;
+        }
+
+        async function convertirStock(event) {
+            event.preventDefault();
+            
+            const tipo = document.getElementById('tipoConversion').value;
+            const sabor = document.getElementById('saborConvertir').value;
+            const cantidad = parseInt(document.getElementById('cantidadConvertir').value);
+            
+            if (tipo === '50a100' && cantidad % 2 !== 0) {
+                mostrarAlerta('❌ Para convertir de 50g a 100g necesitas un número par de bolsas', 'error');
+                return;
+            }
+            
+            let codigoOrigen, codigoDestino, cantidadOrigen, cantidadDestino, descripcion;
+            
+            if (tipo === '100a50') {
+                codigoOrigen = `${sabor}_100g`;
+                codigoDestino = `${sabor}_50g`;
+                cantidadOrigen = cantidad;
+                cantidadDestino = cantidad * 2;
+                descripcion = `${cantidad} x 100g → ${cantidadDestino} x 50g`;
+            } else {
+                codigoOrigen = `${sabor}_50g`;
+                codigoDestino = `${sabor}_100g`;
+                cantidadOrigen = cantidad;
+                cantidadDestino = cantidad / 2;
+                descripcion = `${cantidad} x 50g → ${cantidadDestino} x 100g`;
+            }
+            
+            const stockOrigen = sistemaData.inventario[codigoOrigen] || 0;
+            
+            if (stockOrigen < cantidadOrigen) {
+                mostrarAlerta(`❌ Stock insuficiente! Solo tienes ${stockOrigen} unidades`, 'error');
+                return;
+            }
+            
+            try {
+                actualizarEstadoSync('syncing');
+                
+                // Registrar conversión
+                const conversion = {
+                    fecha: new Date().toISOString(),
+                    sabor: sabor,
+                    tipo: tipo,
+                    cantidad_origen: cantidadOrigen,
+                    cantidad_destino: cantidadDestino,
+                    descripcion: descripcion
+                };
+                
+                await db.collection('conversiones').add(conversion);
+                
+                // Actualizar inventarios
+                const stockDestinoActual = sistemaData.inventario[codigoDestino] || 0;
+                
+                await db.collection('inventario').doc(codigoOrigen).set({
+                    cantidad: stockOrigen - cantidadOrigen
+                });
+                
+                await db.collection('inventario').doc(codigoDestino).set({
+                    cantidad: stockDestinoActual + cantidadDestino
+                });
+                
+                // Actualizar localmente
+                sistemaData.conversiones.push(conversion);
+                sistemaData.inventario[codigoOrigen] = stockOrigen - cantidadOrigen;
+                sistemaData.inventario[codigoDestino] = stockDestinoActual + cantidadDestino;
+                
+                mostrarAlerta(`✅ Conversión exitosa!<br>🔄 ${descripcion}`, 'success');
+                
+                actualizarEstadisticas();
+                actualizarEstadoSync('online');
+                cerrarModal('convertirStockModal');
+                
+                // Limpiar formulario
+                document.getElementById('tipoConversion').value = '';
+                document.getElementById('saborConvertir').value = '';
+                document.getElementById('cantidadConvertir').value = '';
+                document.getElementById('stockConversionInfo').classList.add('hidden');
+                
+            } catch (error) {
+                console.error('Error al convertir stock:', error);
+                mostrarAlerta('❌ Error al convertir stock', 'error');
+                actualizarEstadoSync('offline');
+            }
+        }
+
+        // Funciones de envío
+        function actualizarPrecioEnvio() {
+            calcularTotalEnvio();
+        }
+
+        function calcularTotalEnvio() {
+            const tamaño = parseInt(document.getElementById('tamañoEnvio').value);
+            const cantidad = parseInt(document.getElementById('cantidadEnvio').value) || 0;
+            const tipoPrecio = document.getElementById('tipoPrecioEnvio').value;
+            const costoEnvio = parseFloat(document.getElementById('costoEnvio').value) || 0;
+            
+            if (tamaño && cantidad) {
+                const precio = tipoPrecio === 'mayoreo' ? 
+                    sistemaData.precios_mayoreo[tamaño] : 
+                    sistemaData.precios_menudeo[tamaño];
+                
+                const subtotal = precio * cantidad;
+                const total = subtotal + costoEnvio;
+                
+                document.getElementById('subtotalEnvio').textContent = subtotal.toFixed(2);
+                document.getElementById('costoEnvioMostrar').textContent = costoEnvio.toFixed(2);
+                document.getElementById('totalEnvio').textContent = total.toFixed(2);
+            }
+        }
+
+        async function registrarEnvio(event) {
+            event.preventDefault();
+            
+            const cliente = document.getElementById('clienteEnvio').value;
+            const sabor = document.getElementById('saborEnvio').value;
+            const tamaño = parseInt(document.getElementById('tamañoEnvio').value);
+            const cantidad = parseInt(document.getElementById('cantidadEnvio').value);
+            const tipoPrecio = document.getElementById('tipoPrecioEnvio').value;
+            const costoEnvio = parseFloat(document.getElementById('costoEnvio').value);
+            
+            const codigo = `${sabor}_${tamaño}g`;
+            const stockActual = sistemaData.inventario[codigo] || 0;
+            
+            if (stockActual < cantidad) {
+                mostrarAlerta(`❌ Stock insuficiente! Disponible: ${stockActual}`, 'error');
+                return;
+            }
+            
+            const precioUnitario = tipoPrecio === 'mayoreo' ? 
+                sistemaData.precios_mayoreo[tamaño] : 
+                sistemaData.precios_menudeo[tamaño];
+            
+            const subtotalProducto = precioUnitario * cantidad;
+            const totalVenta = subtotalProducto + costoEnvio;
+            
+            const costoUnitario = sistemaData.costos_unitarios[codigo] || 0;
+            const costoTotalProducto = costoUnitario * cantidad;
+            const gananciaProducto = subtotalProducto - costoTotalProducto;
+            const gananciaNeta = gananciaProducto; // El costo de envío se cobra completo al cliente
+            
+            try {
+                actualizarEstadoSync('syncing');
+                
+                // Crear registro de envío
+                const envio = {
+                    fecha: new Date().toISOString(),
+                    cliente: cliente,
+                    producto: `${sabor.charAt(0).toUpperCase() + sabor.slice(1)} ${tamaño}g`,
+                    codigo: codigo,
+                    cantidad: cantidad,
+                    tipo_precio: tipoPrecio,
+                    precio_unitario: precioUnitario,
+                    subtotal_producto: subtotalProducto,
+                    costo_envio: costoEnvio,
+                    total_venta: totalVenta,
+                    costo_producto: costoTotalProducto,
+                    ganancia_producto: gananciaProducto,
+                    ganancia_neta: gananciaNeta
+                };
+                
+                await db.collection('envios').add(envio);
+                
+                // Actualizar inventario
+                await db.collection('inventario').doc(codigo).set({
+                    cantidad: stockActual - cantidad
+                });
+                
+                // Actualizar localmente
+                sistemaData.envios.push(envio);
+                sistemaData.inventario[codigo] = stockActual - cantidad;
+                
+                mostrarAlerta(`✅ Envío registrado<br>📦 Cliente: ${cliente}<br>💰 Total cobrado: $${totalVenta.toFixed(2)}<br>📈 Ganancia: $${gananciaNeta.toFixed(2)}`, 'success');
+                
+                actualizarEstadisticas();
+                actualizarEstadoSync('online');
+                cerrarModal('envioModal');
+                
+                // Limpiar formulario
+                document.getElementById('clienteEnvio').value = '';
+                document.getElementById('saborEnvio').value = '';
+                document.getElementById('tamañoEnvio').value = '';
+                document.getElementById('cantidadEnvio').value = '';
+                document.getElementById('costoEnvio').value = '';
+                document.getElementById('subtotalEnvio').textContent = '0.00';
+                document.getElementById('costoEnvioMostrar').textContent = '0.00';
+                document.getElementById('totalEnvio').textContent = '0.00';
+                
+            } catch (error) {
+                console.error('Error al registrar envío:', error);
+                mostrarAlerta('❌ Error al registrar envío', 'error');
+                actualizarEstadoSync('offline');
+            }
+        }
+
+        // Funciones actualizadas para cancelar ventas (sin restricción de fecha)
+        async function mostrarCancelarVenta() {
+            // Obtener las últimas 50 ventas y envíos
+            const todasLasVentas = [...sistemaData.ventas, ...sistemaData.envios]
+                .sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
+                .slice(0, 50);
+            
+            let html = '<h3>Historial de Ventas</h3>';
+            
+            if (todasLasVentas.length === 0) {
+                html += '<p>No hay ventas registradas.</p>';
+            } else {
+                html += '<div class="alert alert-warning">⚠️ Cancelar una venta devolverá el producto al inventario y eliminará el registro de ingresos</div>';
+                
+                // Agrupar ventas por fecha
+                const ventasPorFecha = {};
+                todasLasVentas.forEach(venta => {
+                    const fecha = venta.fecha.split('T')[0];
+                    if (!ventasPorFecha[fecha]) {
+                        ventasPorFecha[fecha] = [];
+                    }
+                    ventasPorFecha[fecha].push(venta);
+                });
+                
+                // Ordenar fechas de más reciente a más antigua
+                const fechasOrdenadas = Object.keys(ventasPorFecha).sort((a, b) => b.localeCompare(a));
+                
+                fechasOrdenadas.forEach(fecha => {
+                    const ventasDelDia = ventasPorFecha[fecha];
+                    const fechaFormateada = new Date(fecha + 'T12:00:00').toLocaleDateString('es', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                    
+                    let totalDia = 0;
+                    ventasDelDia.forEach(v => totalDia += v.total_venta);
+                    
+                    html += `
+                        <div style="margin-top: 20px; padding: 15px; background: #f0f0f0; border-radius: 10px;">
+                            <h4 style="margin: 0 0 10px 0;">📅 ${fechaFormateada}</h4>
+                            <div style="text-align: right; margin-bottom: 10px;">
+                                <strong>Total del día: $${totalDia.toFixed(2)}</strong>
+                            </div>
+                    `;
+                    
+                    ventasDelDia.forEach(venta => {
+                        const hora = new Date(venta.fecha).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                        const esEnvio = venta.hasOwnProperty('cliente');
+                        
+                        if (esEnvio) {
+                            html += `
+                                <div style="padding: 15px; margin: 10px 0; background: #e0f2ff; border-radius: 10px; border-left: 5px solid #2196F3;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <div>
+                                            📦 <strong>Envío: ${venta.cliente}</strong>
+                                            <br>${venta.producto} x${venta.cantidad}
+                                            <br><small>Hora: ${hora} | Envío: $${venta.costo_envio.toFixed(2)}</small>
+                                            <br><strong>Total: $${venta.total_venta.toFixed(2)}</strong>
+                                            <br><small style="color: #28a745;">Ganancia: $${venta.ganancia_producto.toFixed(2)}</small>
+                                        </div>
+                                        <button class="btn btn-danger btn-sm" 
+                                            onclick="confirmarCancelacion('${venta.id}', 'envio', '${venta.producto} para ${venta.cliente}', ${venta.cantidad}, ${venta.total_venta}, '${fecha}')">
+                                            ❌ Cancelar
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            const tipoEmoji = venta.tipo_venta === 'mayoreo' ? '🏪' : '🛒';
+                            
+                            if (venta.productos && Array.isArray(venta.productos)) {
+                                // Venta múltiple
+                                const resumenProductos = venta.productos.map(p => 
+                                    `${p.sabor} ${p.tamaño}g x${p.cantidad}`
+                                ).join(', ');
+                                
+                                html += `
+                                    <div style="padding: 15px; margin: 10px 0; background: #f8f9fa; border-radius: 10px; border-left: 5px solid #ff6b35;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <div>
+                                                ${tipoEmoji} <strong>Venta múltiple</strong>
+                                                <br>${resumenProductos}
+                                                <br><small>Hora: ${hora} | Tipo: ${venta.tipo_venta}</small>
+                                                ${venta.costo_personalizado ? '<br><small>* Costo personalizado</small>' : ''}
+                                                <br><strong>Total: $${venta.total_venta.toFixed(2)}</strong>
+                                                <br><small style="color: #28a745;">Ganancia: $${venta.ganancia.toFixed(2)}</small>
+                                            </div>
+                                            <button class="btn btn-danger btn-sm" 
+                                                onclick="confirmarCancelacion('${venta.id}', 'venta', 'venta múltiple', ${venta.cantidad_total || 0}, ${venta.total_venta}, '${fecha}')">
+                                                ❌ Cancelar
+                                            </button>
+                                        </div>
+                                    </div>
+                                `;
+                            } else {
+                                // Venta simple
+                                html += `
+                                    <div style="padding: 15px; margin: 10px 0; background: #f8f9fa; border-radius: 10px; border-left: 5px solid #ff6b35;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <div>
+                                                ${tipoEmoji} <strong>${venta.producto}</strong> x${venta.cantidad}
+                                                <br><small>Hora: ${hora} | Tipo: ${venta.tipo_venta}</small>
+                                                <br><strong>Total: $${venta.total_venta.toFixed(2)}</strong>
+                                                <br><small style="color: #28a745;">Ganancia: $${venta.ganancia.toFixed(2)}</small>
+                                            </div>
+                                            <button class="btn btn-danger btn-sm" 
+                                                onclick="confirmarCancelacion('${venta.id}', 'venta', '${venta.producto}', ${venta.cantidad}, ${venta.total_venta}, '${fecha}')">
+                                                ❌ Cancelar
+                                            </button>
+                                        </div>
+                                    </div>
+                                `;
+                            }
+                        }
+                    });
+                    
+                    html += '</div>';
+                });
+            }
+            
+            document.getElementById('listadoVentasContent').innerHTML = html;
+            mostrarModal('cancelarVentaModal');
+        }
+
+        // Función actualizada de confirmación con fecha
+        function confirmarCancelacion(ventaId, tipo, descripcion, cantidad, total, fecha) {
+            const fechaFormateada = new Date(fecha + 'T12:00:00').toLocaleDateString('es', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            
+            const mensaje = `¿Estás seguro de cancelar esta venta?\n\n📅 Fecha: ${fechaFormateada}\n📦 ${descripcion}\n💰 Total: $${total.toFixed(2)}\n\n⚠️ Se devolverán los productos al inventario y se eliminará el registro de ingresos.`;
+
+            if (confirm(mensaje)) {
+                cancelarVenta(ventaId, tipo);
+            }
+        }
+
+        // Función actualizada para cancelar venta sin restricción de fecha
+        async function cancelarVenta(ventaId, tipo) {
+            try {
+                actualizarEstadoSync('syncing');
+                
+                let venta;
+                let coleccion;
+                
+                if (tipo === 'venta') {
+                    venta = sistemaData.ventas.find(v => v.id === ventaId);
+                    coleccion = 'ventas';
+                } else {
+                    venta = sistemaData.envios.find(e => e.id === ventaId);
+                    coleccion = 'envios';
+                }
+                
+                if (!venta) {
+                    mostrarAlerta('❌ No se encontró la venta', 'error');
+                    actualizarEstadoSync('online');
+                    return;
+                }
+                
+                // Crear registro de cancelación para auditoría
+                const cancelacion = {
+                    fecha_cancelacion: new Date().toISOString(),
+                    tipo: tipo,
+                    venta_original: venta,
+                    usuario: 'Sistema'
+                };
+                
+                await db.collection('cancelaciones').add(cancelacion);
+                
+                // Manejar devolución de productos
+                if (venta.productos && Array.isArray(venta.productos)) {
+                    // Venta múltiple - devolver cada producto
+                    const batch = db.batch();
+                    
+                    for (const producto of venta.productos) {
+                        const stockActual = sistemaData.inventario[producto.codigo] || 0;
+                        const invRef = db.collection('inventario').doc(producto.codigo);
+                        batch.set(invRef, { cantidad: stockActual + producto.cantidad });
+                        
+                        // Actualizar localmente
+                        sistemaData.inventario[producto.codigo] = stockActual + producto.cantidad;
+                    }
+                    
+                    await batch.commit();
+                } else {
+                    // Venta simple - devolver un producto
+                    const stockActual = sistemaData.inventario[venta.codigo] || 0;
+                    await db.collection('inventario').doc(venta.codigo).set({
+                        cantidad: stockActual + venta.cantidad
+                    });
+                    
+                    sistemaData.inventario[venta.codigo] = stockActual + venta.cantidad;
+                }
+                
+                // Eliminar la venta de Firebase
+                await db.collection(coleccion).doc(ventaId).delete();
+                
+                // Actualizar datos locales
+                if (tipo === 'venta') {
+                    sistemaData.ventas = sistemaData.ventas.filter(v => v.id !== ventaId);
+                } else {
+                    sistemaData.envios = sistemaData.envios.filter(e => e.id !== ventaId);
+                }
+                
+                const fechaVenta = new Date(venta.fecha).toLocaleDateString('es', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+                
+                mostrarAlerta(`✅ Venta cancelada exitosamente<br>
+                    📅 Venta del ${fechaVenta}<br>
+                    📦 Se devolvieron los productos al inventario<br>
+                    💰 Se eliminó el ingreso de $${venta.total_venta.toFixed(2)}`, 'success');
+                
+                actualizarEstadisticas();
+                actualizarEstadoSync('online');
+                
+                // Actualizar la lista de ventas
+                mostrarCancelarVenta();
+                
+            } catch (error) {
+                console.error('Error al cancelar venta:', error);
+                mostrarAlerta('❌ Error al cancelar la venta. Por favor intenta de nuevo.', 'error');
+                actualizarEstadoSync('offline');
+            }
+        }
+
+        // Funciones de tendencias - VERSIÓN MEJORADA
+        function mostrarTendencias() {
+            // Obtener todas las ventas y envíos
+            const todasLasVentas = [...sistemaData.ventas, ...sistemaData.envios];
+            
+            if (todasLasVentas.length < 5) {
+                document.getElementById('tendenciasContent').innerHTML = `
+                    <div class="alert alert-warning">
+                        <h4>📊 Datos insuficientes</h4>
+                        <p>Se necesitan al menos 5 ventas registradas para mostrar tendencias significativas.</p>
+                        <p>Ventas actuales: ${todasLasVentas.length}</p>
+                    </div>
+                `;
+                mostrarModal('tendenciasModal');
+                return;
+            }
+            
+            // Análisis temporal - últimos 30 días
+            const hace30Dias = new Date();
+            hace30Dias.setDate(hace30Dias.getDate() - 30);
+            const ventasUltimos30Dias = todasLasVentas.filter(v => new Date(v.fecha) >= hace30Dias);
+            
+            // Análisis por sabor
+            const ventasPorSabor = {};
+            const ventasPorTamaño = {50: 0, 100: 0};
+            const ventasPorCombinacion = {};
+            const ventasPorDia = {};
+            const ventasPorTipo = {mayoreo: 0, menudeo: 0};
+            
+            todasLasVentas.forEach(venta => {
+                const fecha = venta.fecha.split('T')[0];
+                const tipo = venta.tipo_precio || venta.tipo_venta || 'menudeo';
+                
+                // Manejar ventas múltiples
+                if (venta.productos && Array.isArray(venta.productos)) {
+                    venta.productos.forEach(producto => {
+                        procesarProducto(producto, fecha, tipo);
+                    });
+                } else {
+                    // Venta simple
+                    const [sabor, tamañoStr] = venta.codigo.split('_');
+                    const producto = {
+                        codigo: venta.codigo,
+                        sabor: sabor,
+                        tamaño: parseInt(tamañoStr),
+                        cantidad: venta.cantidad,
+                        subtotal: venta.subtotal_producto || venta.total_venta
+                    };
+                    procesarProducto(producto, fecha, tipo);
+                }
+            });
+            
+            function procesarProducto(producto, fecha, tipo) {
+                const sabor = producto.sabor;
+                const tamaño = producto.tamaño;
+                
+                // Por sabor
+                if (!ventasPorSabor[sabor]) {
+                    ventasPorSabor[sabor] = {
+                        cantidad: 0, 
+                        ingresos: 0, 
+                        tendencia: []
+                    };
+                }
+                ventasPorSabor[sabor].cantidad += producto.cantidad;
+                ventasPorSabor[sabor].ingresos += producto.subtotal || 0;
+                ventasPorSabor[sabor].tendencia.push({fecha: fecha, cantidad: producto.cantidad});
+                
+                // Por tamaño
+                ventasPorTamaño[tamaño] += producto.cantidad;
+                
+                // Por tipo de venta
+                ventasPorTipo[tipo] += producto.cantidad;
+                
+                // Por combinación
+                const combinacion = `${sabor}_${tamaño}`;
+                if (!ventasPorCombinacion[combinacion]) {
+                    ventasPorCombinacion[combinacion] = {
+                        cantidad: 0, 
+                        sabor: sabor, 
+                        tamaño: tamaño,
+                        ingresos: 0,
+                        stockActual: sistemaData.inventario[`${sabor}_${tamaño}g`] || 0
+                    };
+                }
+                ventasPorCombinacion[combinacion].cantidad += producto.cantidad;
+                ventasPorCombinacion[combinacion].ingresos += producto.subtotal || 0;
+                
+                // Por día
+                if (!ventasPorDia[fecha]) {
+                    ventasPorDia[fecha] = {ventas: 0, ingresos: 0};
+                }
+                ventasPorDia[fecha].ventas += producto.cantidad;
+                ventasPorDia[fecha].ingresos += producto.subtotal || 0;
+            }
+            
+            // Calcular velocidad de venta (productos por día)
+            const diasConVentas = Object.keys(ventasPorDia).length;
+            const velocidadVenta = {};
+            Object.entries(ventasPorCombinacion).forEach(([key, datos]) => {
+                velocidadVenta[key] = datos.cantidad / Math.max(diasConVentas, 1);
+            });
+            
+            // Ordenar por más vendidos
+            const saboresOrdenados = Object.entries(ventasPorSabor)
+                .sort((a, b) => b[1].cantidad - a[1].cantidad);
+            
+            const combinacionesOrdenadas = Object.entries(ventasPorCombinacion)
+                .sort((a, b) => b[1].cantidad - a[1].cantidad);
+            
+            // Calcular tendencias (crecimiento/decrecimiento)
+            const calcularTendencia = (datos) => {
+                if (datos.tendencia.length < 2) return 'estable';
+                
+                const mitad = Math.floor(datos.tendencia.length / 2);
+                const primeraMitad = datos.tendencia.slice(0, mitad).reduce((sum, v) => sum + v.cantidad, 0);
+                const segundaMitad = datos.tendencia.slice(mitad).reduce((sum, v) => sum + v.cantidad, 0);
+                
+                const cambio = ((segundaMitad - primeraMitad) / Math.max(primeraMitad, 1)) * 100;
+                
+                if (cambio > 20) return 'creciendo';
+                if (cambio < -20) return 'decreciendo';
+                return 'estable';
+            };
+            
+            let html = '<div style="margin-bottom: 20px;">';
+            
+            // Resumen ejecutivo
+            const totalUnidadesVendidas = Object.values(ventasPorSabor).reduce((sum, v) => sum + v.cantidad, 0);
+            const totalIngresos = Object.values(ventasPorSabor).reduce((sum, v) => sum + v.ingresos, 0);
+            const promedioVentaDiaria = totalUnidadesVendidas / Math.max(diasConVentas, 1);
+            
+            html += `
+                <div style="background: linear-gradient(135deg, #ff6b35, #d73027); color: white; padding: 20px; border-radius: 15px; margin-bottom: 20px;">
+                    <h3 style="margin: 0 0 15px 0;">📈 Resumen Ejecutivo</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <div>
+                            <div style="font-size: 2em; font-weight: bold;">${totalUnidadesVendidas}</div>
+                            <div>Unidades Vendidas</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 2em; font-weight: bold;">${totalIngresos.toFixed(0)}</div>
+                            <div>Ingresos Totales</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 2em; font-weight: bold;">${promedioVentaDiaria.toFixed(1)}</div>
+                            <div>Promedio Diario</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            html += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">';
+            
+            // Top sabores con tendencias
+            html += `
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                    <h3>🌶️ Sabores Más Vendidos</h3>
+                    <div style="margin-top: 15px;">
+            `;
+            
+            saboresOrdenados.slice(0, 5).forEach(([sabor, datos], index) => {
+                const emoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🏅';
+                const tendencia = calcularTendencia(datos);
+                const tendenciaEmoji = tendencia === 'creciendo' ? '📈' : tendencia === 'decreciendo' ? '📉' : '➡️';
+                
+                html += `
+                    <div style="padding: 15px; margin: 8px 0; background: white; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                ${emoji} <strong>${sabor.charAt(0).toUpperCase() + sabor.slice(1)}</strong> ${tendenciaEmoji}
+                                <br><small>Cantidad: ${datos.cantidad} unidades</small>
+                                <br><small>Ingresos: ${datos.ingresos.toFixed(2)}</small>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 1.5em; font-weight: bold; color: #ff6b35;">${datos.cantidad}</div>
+                                <small>unidades</small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div></div>';
+            
+            // Análisis por tamaño mejorado
+            const total50 = ventasPorTamaño[50];
+            const total100 = ventasPorTamaño[100];
+            const totalUnidades = total50 + total100;
+            const porcentaje50 = totalUnidades > 0 ? (total50 / totalUnidades * 100).toFixed(1) : 0;
+            const porcentaje100 = totalUnidades > 0 ? (total100 / totalUnidades * 100).toFixed(1) : 0;
+            
+            html += `
+                <div style="background: #f0f8ff; padding: 20px; border-radius: 10px;">
+                    <h3>📏 Preferencia por Tamaño</h3>
+                    <div style="margin-top: 15px;">
+                        <div style="padding: 15px; background: white; border-radius: 5px; margin-bottom: 10px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <strong>Bolsas de 50g</strong>
+                                <span>${total50} unidades (${porcentaje50}%)</span>
+                            </div>
+                            <div style="background: #e0e0e0; height: 20px; border-radius: 10px; margin-top: 10px; overflow: hidden;">
+                                <div style="background: #ff6b35; height: 100%; width: ${porcentaje50}%; transition: width 0.5s ease;"></div>
+                            </div>
+                        </div>
+                        <div style="padding: 15px; background: white; border-radius: 5px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <strong>Bolsas de 100g</strong>
+                                <span>${total100} unidades (${porcentaje100}%)</span>
+                            </div>
+                            <div style="background: #e0e0e0; height: 20px; border-radius: 10px; margin-top: 10px; overflow: hidden;">
+                                <div style="background: #d73027; height: 100%; width: ${porcentaje100}%; transition: width 0.5s ease;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Análisis por tipo de cliente
+            const totalMayoreo = ventasPorTipo.mayoreo;
+            const totalMenudeo = ventasPorTipo.menudeo;
+            const totalTipos = totalMayoreo + totalMenudeo;
+            const porcentajeMayoreo = totalTipos > 0 ? (totalMayoreo / totalTipos * 100).toFixed(1) : 0;
+            const porcentajeMenudeo = totalTipos > 0 ? (totalMenudeo / totalTipos * 100).toFixed(1) : 0;
+            
+            html += `
+                <div style="background: #fff0f5; padding: 20px; border-radius: 10px;">
+                    <h3>🛒 Tipo de Cliente</h3>
+                    <div style="margin-top: 15px;">
+                        <div style="padding: 15px; background: white; border-radius: 5px; margin-bottom: 10px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <strong>🏪 Mayoreo</strong>
+                                <span>${totalMayoreo} unidades (${porcentajeMayoreo}%)</span>
+                            </div>
+                            <div style="background: #e0e0e0; height: 20px; border-radius: 10px; margin-top: 10px; overflow: hidden;">
+                                <div style="background: #2196F3; height: 100%; width: ${porcentajeMayoreo}%; transition: width 0.5s ease;"></div>
+                            </div>
+                        </div>
+                        <div style="padding: 15px; background: white; border-radius: 5px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <strong>🛒 Menudeo</strong>
+                                <span>${totalMenudeo} unidades (${porcentajeMenudeo}%)</span>
+                            </div>
+                            <div style="background: #e0e0e0; height: 20px; border-radius: 10px; margin-top: 10px; overflow: hidden;">
+                                <div style="background: #4CAF50; height: 100%; width: ${porcentajeMenudeo}%; transition: width 0.5s ease;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            html += '</div>';
+            
+            // Productos estrella y alertas de stock
+            html += `
+                <div style="background: #fff3cd; padding: 20px; border-radius: 10px; margin-top: 20px;">
+                    <h3>⭐ Productos Estrella y Alertas de Stock</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-top: 15px;">
+            `;
+            
+            combinacionesOrdenadas.slice(0, 8).forEach(([key, datos]) => {
+                const saborTitulo = datos.sabor.charAt(0).toUpperCase() + datos.sabor.slice(1);
+                const velocidad = velocidadVenta[key];
+                const diasDeStock = datos.stockActual > 0 ? (datos.stockActual / velocidad).toFixed(1) : 0;
+                
+                let alertaColor = '#28a745';
+                let alertaTexto = 'Stock OK';
+                if (diasDeStock < 3 && diasDeStock > 0) {
+                    alertaColor = '#ff9800';
+                    alertaTexto = '⚠️ Stock bajo';
+                } else if (diasDeStock === 0 || datos.stockActual === 0) {
+                    alertaColor = '#f44336';
+                    alertaTexto = '🚨 Agotado';
+                }
+                
+                html += `
+                    <div style="padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong>${saborTitulo} ${datos.tamaño}g</strong>
+                                <br><small>${datos.cantidad} vendidas</small>
+                                <br><small>Velocidad: ${velocidad.toFixed(1)}/día</small>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="color: ${alertaColor}; font-weight: bold;">${alertaTexto}</div>
+                                <small>Stock: ${datos.stockActual}</small>
+                                ${diasDeStock > 0 ? `<br><small>${diasDeStock} días</small>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div></div>';
+            
+            // Recomendaciones inteligentes basadas en datos
+            html += `
+                <div style="background: #d4edda; padding: 20px; border-radius: 10px; margin-top: 20px;">
+                    <h3>💡 Recomendaciones Basadas en Datos</h3>
+                    <ul style="margin-left: 20px; margin-top: 15px; line-height: 1.8;">
+            `;
+            
+            // Recomendación basada en preferencia de tamaño
+            if (porcentaje50 > 70) {
+                html += `<li><strong>📦 Alta preferencia por 50g (${porcentaje50}%):</strong> 
+                    Considera mantener un ratio de 70/30 en tu inventario favoreciendo las bolsas de 50g. 
+                    Evita convertir demasiadas bolsas de 50g a 100g.</li>`;
+            } else if (porcentaje100 > 70) {
+                html += `<li><strong>📦 Alta preferencia por 100g (${porcentaje100}%):</strong> 
+                    Mantén más stock de bolsas de 100g. Considera convertir inventario de 50g a 100g cuando sea necesario.</li>`;
+            } else {
+                html += `<li><strong>📦 Demanda equilibrada:</strong> 
+                    Mantén un balance 50/50 entre ambos tamaños. La conversión entre tamaños debe ser mínima.</li>`;
+            }
+            
+            // Recomendación por sabores con tendencia
+            saboresOrdenados.slice(0, 3).forEach(([sabor, datos]) => {
+                const tendencia = calcularTendencia(datos);
+                if (tendencia === 'creciendo') {
+                    html += `<li><strong>📈 ${sabor} en crecimiento:</strong> 
+                        Este sabor muestra tendencia positiva. Aumenta el stock preventivamente.</li>`;
+                } else if (tendencia === 'decreciendo') {
+                    html += `<li><strong>📉 ${sabor} en declive:</strong> 
+                        Las ventas están bajando. Considera promociones o reduce la producción.</li>`;
+                }
+            });
+            
+            // Alertas de stock crítico
+            const productosCriticos = combinacionesOrdenadas.filter(([key, datos]) => {
+                const velocidad = velocidadVenta[key];
+                const diasDeStock = datos.stockActual > 0 ? (datos.stockActual / velocidad) : 0;
+                return diasDeStock < 3 && datos.cantidad > 5; // Popular pero con poco stock
+            });
+            
+            if (productosCriticos.length > 0) {
+                html += `<li><strong>🚨 Productos populares con stock crítico:</strong> `;
+                productosCriticos.forEach(([key, datos], index) => {
+                    const saborTitulo = datos.sabor.charAt(0).toUpperCase() + datos.sabor.slice(1);
+                    html += `${saborTitulo} ${datos.tamaño}g`;
+                    if (index < productosCriticos.length - 1) html += ', ';
+                });
+                html += `. Reabastecer urgentemente.</li>`;
+            }
+            
+            // Recomendación por tipo de cliente
+            if (porcentajeMayoreo > 60) {
+                html += `<li><strong>🏪 Enfoque mayorista (${porcentajeMayoreo}%):</strong> 
+                    Tu negocio se inclina hacia ventas al mayoreo. Considera ofrecer descuentos por volumen 
+                    o paquetes especiales para mayoristas.</li>`;
+            } else if (porcentajeMenudeo > 70) {
+                html += `<li><strong>🛒 Enfoque minorista (${porcentajeMenudeo}%):</strong> 
+                    Las ventas al menudeo dominan. Mantén variedad y considera promociones para aumentar 
+                    el ticket promedio.</li>`;
+            }
+            
+            // Productos sin movimiento
+            const productosInactivos = [];
+            sistemaData.sabores.forEach(sabor => {
+                sistemaData.tamaños.forEach(tamaño => {
+                    const key = `${sabor}_${tamaño}`;
+                    if (!ventasPorCombinacion[key] || ventasPorCombinacion[key].cantidad === 0) {
+                        const stock = sistemaData.inventario[`${sabor}_${tamaño}g`] || 0;
+                        if (stock > 5) {
+                            productosInactivos.push(`${sabor} ${tamaño}g (${stock} unidades)`);
+                        }
+                    }
+                });
+            });
+            
+            if (productosInactivos.length > 0) {
+                html += `<li><strong>📦 Productos sin movimiento con stock:</strong> ${productosInactivos.join(', ')}. 
+                    Considera promociones 2x1, muestras gratis o descuentos para mover este inventario.</li>`;
+            }
+            
+            html += '</ul></div>';
+            
+            // Gráfico de tendencia diaria (últimos 7 días)
+            const ultimos7Dias = [];
+            const hoy = new Date();
+            for (let i = 6; i >= 0; i--) {
+                const fecha = new Date(hoy);
+                fecha.setDate(fecha.getDate() - i);
+                ultimos7Dias.push(fecha.toISOString().split('T')[0]);
+            }
+            
+            html += `
+                <div style="background: white; padding: 20px; border-radius: 10px; margin-top: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <h3>📅 Ventas de los Últimos 7 Días</h3>
+                    <div style="margin-top: 20px;">
+            `;
+            
+            const maxVentasDia = Math.max(...ultimos7Dias.map(fecha => ventasPorDia[fecha]?.ventas || 0));
+            
+            ultimos7Dias.forEach(fecha => {
+                const ventas = ventasPorDia[fecha]?.ventas || 0;
+                const ingresos = ventasPorDia[fecha]?.ingresos || 0;
+                const porcentajeBarra = maxVentasDia > 0 ? (ventas / maxVentasDia * 100) : 0;
+                const diaSemana = new Date(fecha + 'T12:00:00').toLocaleDateString('es', { weekday: 'short' });
+                
+                html += `
+                    <div style="margin-bottom: 15px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                            <strong>${diaSemana} ${fecha.split('-')[2]}/${fecha.split('-')[1]}</strong>
+                            <span>${ventas} unidades | ${ingresos.toFixed(0)}</span>
+                        </div>
+                        <div style="background: #e0e0e0; height: 25px; border-radius: 5px; overflow: hidden;">
+                            <div style="background: linear-gradient(to right, #ff6b35, #d73027); height: 100%; width: ${porcentajeBarra}%; 
+                                 transition: width 0.5s ease; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+                                ${ventas > 0 ? ventas : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div></div>';
+            
+            document.getElementById('tendenciasContent').innerHTML = html;
+            mostrarModal('tendenciasModal');
+        }
+
+        // Función mejorada de recomendaciones
+        function mostrarRecomendaciones() {
+            let html = '<h3>💡 Sistema Inteligente de Recomendaciones</h3>';
+            
+            // Análisis completo del inventario vs ventas
+            const recomendaciones = {
+                criticas: [],
+                importantes: [],
+                sugerencias: [],
+                oportunidades: []
+            };
+            
+            // Análisis de los últimos 7 y 30 días
+            const hace7Dias = new Date();
+            hace7Dias.setDate(hace7Dias.getDate() - 7);
+            const hace30Dias = new Date();
+            hace30Dias.setDate(hace30Dias.getDate() - 30);
+            
+            const fechaLimite7 = hace7Dias.toISOString();
+            const fechaLimite30 = hace30Dias.toISOString();
+            
+            // Análisis por producto
+            sistemaData.sabores.forEach(sabor => {
+                sistemaData.tamaños.forEach(tamaño => {
+                    const codigo = `${sabor}_${tamaño}g`;
+                    const stock = sistemaData.inventario[codigo] || 0;
+                    const productoNombre = `${sabor.charAt(0).toUpperCase() + sabor.slice(1)} ${tamaño}g`;
+                    
+                    // Contar ventas considerando ventas múltiples
+                    const todasVentas = [...sistemaData.ventas, ...sistemaData.envios];
+                    let unidades7Dias = 0;
+                    let unidades30Dias = 0;
+                    
+                    todasVentas.forEach(venta => {
+                        if (venta.productos && Array.isArray(venta.productos)) {
+                            // Venta múltiple
+                            venta.productos.forEach(producto => {
+                                if (producto.codigo === codigo) {
+                                    if (venta.fecha >= fechaLimite7) unidades7Dias += producto.cantidad;
+                                    if (venta.fecha >= fechaLimite30) unidades30Dias += producto.cantidad;
+                                }
+                            });
+                        } else if (venta.codigo === codigo) {
+                            // Venta simple
+                            if (venta.fecha >= fechaLimite7) unidades7Dias += venta.cantidad;
+                            if (venta.fecha >= fechaLimite30) unidades30Dias += venta.cantidad;
+                        }
+                    });
+                    
+                    // Calcular velocidad de venta
+                    const velocidadSemanal = unidades7Dias / 7;
+                    const velocidadMensual = unidades30Dias / 30;
+                    
+                    // Proyección de días de stock
+                    const diasDeStock = velocidadSemanal > 0 ? stock / velocidadSemanal : 999;
+                    
+                    // Análisis de tendencia
+                    const tendenciaCrecimiento = velocidadSemanal > velocidadMensual * 1.2;
+                    const tendenciaDecrecimiento = velocidadSemanal < velocidadMensual * 0.8;
+                    
+                    // Generar recomendaciones
+                    if (stock === 0 && unidades7Dias > 0) {
+                        recomendaciones.criticas.push({
+                            producto: productoNombre,
+                            mensaje: `Agotado con demanda activa (${unidades7Dias} vendidas en 7 días)`,
+                            accion: 'Reabastecer URGENTEMENTE',
+                            prioridad: 1
+                        });
+                    } else if (diasDeStock < 3 && velocidadSemanal > 1) {
+                        recomendaciones.criticas.push({
+                            producto: productoNombre,
+                            mensaje: `Stock crítico: ${stock} unidades (${diasDeStock.toFixed(1)} días)`,
+                            accion: `Necesitas al menos ${Math.ceil(velocidadSemanal * 7)} unidades para una semana`,
+                            prioridad: 2
+                        });
+                    } else if (diasDeStock < 7 && velocidadSemanal > 0.5) {
+                        recomendaciones.importantes.push({
+                            producto: productoNombre,
+                            mensaje: `Stock bajo: ${stock} unidades (${diasDeStock.toFixed(1)} días)`,
+                            accion: 'Planificar reabastecimiento',
+                            prioridad: 3
+                        });
+                    } else if (stock > 50 && unidades30Dias === 0) {
+                        recomendaciones.sugerencias.push({
+                            producto: productoNombre,
+                            mensaje: `Stock alto sin rotación: ${stock} unidades sin ventas en 30 días`,
+                            accion: 'Considerar promoción o descuento',
+                            prioridad: 4
+                        });
+                    } else if (tendenciaCrecimiento && diasDeStock < 14) {
+                        recomendaciones.oportunidades.push({
+                            producto: productoNombre,
+                            mensaje: `Tendencia positiva: +${((velocidadSemanal/velocidadMensual - 1) * 100).toFixed(0)}% vs promedio mensual`,
+                            accion: 'Aumentar stock preventivamente',
+                            prioridad: 5
+                        });
+                    } else if (tendenciaDecrecimiento && stock > 30) {
+                        recomendaciones.sugerencias.push({
+                            producto: productoNombre,
+                            mensaje: `Ventas en declive: ${((1 - velocidadSemanal/velocidadMensual) * 100).toFixed(0)}% menos que promedio`,
+                            accion: 'No sobreproducir',
+                            prioridad: 6
+                        });
+                    }
+                });
+            });
+            
+            // Mostrar recomendaciones organizadas
+            if (recomendaciones.criticas.length === 0 && 
+                recomendaciones.importantes.length === 0 && 
+                recomendaciones.sugerencias.length === 0 && 
+                recomendaciones.oportunidades.length === 0) {
+                html += '<div class="alert alert-success" style="margin-top: 20px;">✅ Tu inventario está perfectamente balanceado. No hay acciones urgentes requeridas.</div>';
+            } else {
+                // Recomendaciones críticas
+                if (recomendaciones.criticas.length > 0) {
+                    html += `
+                        <div style="background: #f8d7da; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                            <h4>🚨 Acciones Críticas (Inmediatas)</h4>
+                    `;
+                    recomendaciones.criticas.sort((a, b) => a.prioridad - b.prioridad).forEach(rec => {
+                        html += `
+                            <div style="background: white; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 5px solid #dc3545;">
+                                <strong>${rec.producto}</strong>
+                                <br>${rec.mensaje}
+                                <br><span style="color: #dc3545; font-weight: bold;">→ ${rec.accion}</span>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                }
+                
+                // Recomendaciones importantes
+                if (recomendaciones.importantes.length > 0) {
+                    html += `
+                        <div style="background: #fff3cd; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                            <h4>⚠️ Acciones Importantes (Esta semana)</h4>
+                    `;
+                    recomendaciones.importantes.forEach(rec => {
+                        html += `
+                            <div style="background: white; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 5px solid #ffc107;">
+                                <strong>${rec.producto}</strong>
+                                <br>${rec.mensaje}
+                                <br><span style="color: #ff6b35; font-weight: bold;">→ ${rec.accion}</span>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                }
+                
+                // Oportunidades
+                if (recomendaciones.oportunidades.length > 0) {
+                    html += `
+                        <div style="background: #d1ecf1; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                            <h4>📈 Oportunidades de Crecimiento</h4>
+                    `;
+                    recomendaciones.oportunidades.forEach(rec => {
+                        html += `
+                            <div style="background: white; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 5px solid #17a2b8;">
+                                <strong>${rec.producto}</strong>
+                                <br>${rec.mensaje}
+                                <br><span style="color: #17a2b8; font-weight: bold;">→ ${rec.accion}</span>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                }
+                
+                // Sugerencias
+                if (recomendaciones.sugerencias.length > 0) {
+                    html += `
+                        <div style="background: #e7e8ea; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                            <h4>💭 Sugerencias de Optimización</h4>
+                    `;
+                    recomendaciones.sugerencias.forEach(rec => {
+                        html += `
+                            <div style="background: white; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 5px solid #6c757d;">
+                                <strong>${rec.producto}</strong>
+                                <br>${rec.mensaje}
+                                <br><span style="color: #6c757d; font-weight: bold;">→ ${rec.accion}</span>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                }
+            }
+            
+            // Análisis adicional de patrones
+            html += `
+                <div style="background: #d4edda; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                    <h4>🎯 Análisis de Patrones y Estrategias</h4>
+                    <ul style="margin-left: 20px; margin-top: 15px; line-height: 1.8;">
+            `;
+            
+            // Analizar día de la semana con más ventas
+            const ventasPorDiaSemana = {};
+            [...sistemaData.ventas, ...sistemaData.envios].forEach(venta => {
+                const diaSemana = new Date(venta.fecha).getDay();
+                if (!ventasPorDiaSemana[diaSemana]) ventasPorDiaSemana[diaSemana] = 0;
+                
+                if (venta.productos && Array.isArray(venta.productos)) {
+                    venta.productos.forEach(producto => {
+                        ventasPorDiaSemana[diaSemana] += producto.cantidad;
+                    });
+                } else {
+                    ventasPorDiaSemana[diaSemana] += venta.cantidad || 0;
+                }
+            });
+            
+            const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+            const mejorDia = Object.entries(ventasPorDiaSemana).sort((a, b) => b[1] - a[1])[0];
+            
+            if (mejorDia) {
+                html += `<li><strong>📅 Mejor día de ventas:</strong> ${diasSemana[mejorDia[0]]} 
+                    (${mejorDia[1]} unidades vendidas). Asegura stock completo para este día.</li>`;
+            }
+            
+            // Análisis de combos potenciales
+            const ventasSimultaneas = {};
+            const ventasPorFecha = {};
+            [...sistemaData.ventas, ...sistemaData.envios].forEach(venta => {
+                const fecha = venta.fecha.split('T')[0];
+                if (!ventasPorFecha[fecha]) ventasPorFecha[fecha] = [];
+                
+                if (venta.productos && Array.isArray(venta.productos)) {
+                    venta.productos.forEach(producto => {
+                        ventasPorFecha[fecha].push(producto.codigo);
+                    });
+                } else if (venta.codigo) {
+                    ventasPorFecha[fecha].push(venta.codigo);
+                }
+            });
+            
+            Object.values(ventasPorFecha).forEach(ventas => {
+                if (ventas.length > 1) {
+                    for (let i = 0; i < ventas.length - 1; i++) {
+                        for (let j = i + 1; j < ventas.length; j++) {
+                            const combo = [ventas[i], ventas[j]].sort().join('+');
+                            if (!ventasSimultaneas[combo]) ventasSimultaneas[combo] = 0;
+                            ventasSimultaneas[combo]++;
+                        }
+                    }
+                }
+            });
+            
+            const combosFrec = Object.entries(ventasSimultaneas).sort((a, b) => b[1] - a[1]).slice(0, 3);
+            if (combosFrec.length > 0) {
+                html += '<li><strong>🎁 Productos que se venden juntos:</strong> ';
+                combosFrec.forEach(([combo, freq], index) => {
+                    const [prod1, prod2] = combo.split('+');
+                    html += `${prod1} + ${prod2} (${freq} veces)`;
+                    if (index < combosFrec.length - 1) html += ', ';
+                });
+                html += '. Considera crear promociones de combo.</li>';
+            }
+            
+            html += '</ul></div>';
+            
+            document.getElementById('tendenciasContent').innerHTML = html;
+            mostrarModal('tendenciasModal');
+        }
+
+        // Cerrar modales al hacer clic fuera
+        window.onclick = function(event) {
+            const modales = document.getElementsByClassName('modal');
+            for (let i = 0; i < modales.length; i++) {
+                if (event.target === modales[i]) {
+                    modales[i].style.display = 'none';
+                }
+            }
+        }
+
+        // Inicializar cuando se carga la página
+        document.addEventListener('DOMContentLoaded', function() {
+            verificarSesion();
+        });
+
+        // Auto-sincronizar cada 30 segundos si está autenticado
+        setInterval(() => {
+            if (usuarioAutenticado) {
+                cargarDatosFirebase();
+            }
+        }, 30000);
+    </script>
+</body>
+</html>
