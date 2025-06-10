@@ -2508,3 +2508,981 @@
                             ${venta.costo_personalizado ? '<br><small>* Costo personalizado aplicado</small>' : ''}
                             <br><small>Ganancia: ${venta.ganancia.toFixed(2)}</small>
                         </div>`;
+<!-- Continuación del código JavaScript para completar tu archivo index.html -->
+<!-- Agrega esto después de donde se cortó tu código -->
+
+                html += `<div style="padding: 10px; margin: 5px 0; background: #e8f5e8; border-radius: 5px;">
+                    ${tipoEmoji} <strong>Venta múltiple:</strong> ${resumenProductos}
+                    <br>Total: $${venta.total_venta.toFixed(2)}
+                    ${venta.costo_personalizado ? '<br><small>* Costo personalizado aplicado</small>' : ''}
+                    <br><small>Ganancia: $${venta.ganancia.toFixed(2)}</small>
+                </div>`;
+                
+                totalIngresos += venta.total_venta;
+                totalCostos += venta.costo_total;
+                gananciaProductos += venta.ganancia;
+            } else {
+                // Venta simple (formato antiguo)
+                html += `<div style="padding: 10px; margin: 5px 0; background: #e8f5e8; border-radius: 5px;">
+                    ${tipoEmoji} ${venta.producto} x${venta.cantidad} = $${venta.total_venta.toFixed(2)}
+                    <br><small>Ganancia: $${venta.ganancia.toFixed(2)}</small>
+                </div>`;
+                
+                totalIngresos += venta.total_venta;
+                totalCostos += venta.costo_total;
+                gananciaProductos += venta.ganancia;
+            }
+        });
+    }
+    
+    // Mostrar envíos
+    if (enviosHoy.length > 0) {
+        html += '<h4>📦 Envíos del Día</h4>';
+        enviosHoy.forEach(envio => {
+            html += `<div style="padding: 10px; margin: 5px 0; background: #e3f2fd; border-radius: 5px;">
+                📦 Envío a ${envio.cliente}: ${envio.producto} x${envio.cantidad}
+                <br>Total (incluye envío): $${envio.total_venta.toFixed(2)}
+                <br><small>Costo envío: $${envio.costo_envio.toFixed(2)}</small>
+            </div>`;
+            
+            totalIngresos += envio.total_venta;
+            totalEnvios += envio.total_venta;
+        });
+    }
+    
+    // Mostrar regaladas
+    if (regaladashHoy.length > 0) {
+        html += '<h4>🎁 Productos Regalados (Muestras)</h4>';
+        regaladashHoy.forEach(regalada => {
+            html += `<div style="padding: 10px; margin: 5px 0; background: #fff3cd; border-radius: 5px;">
+                🎁 ${regalada.producto} x${regalada.cantidad}
+                ${regalada.punto_venta ? `<br>Punto: ${regalada.punto_venta}` : ''}
+                <br><small>Costo: $${regalada.costo_total.toFixed(2)}</small>
+            </div>`;
+            
+            costoRegaladas += regalada.costo_total;
+        });
+    }
+    
+    // Mostrar ajustes
+    if (ajustesHoy.length > 0) {
+        html += '<h4>🔧 Ajustes de Inventario</h4>';
+        ajustesHoy.forEach(ajuste => {
+            const emoji = ajuste.tipo === 'reduccion' ? '➖' : '➕';
+            html += `<div style="padding: 10px; margin: 5px 0; background: #f8d7da; border-radius: 5px;">
+                ${emoji} ${ajuste.producto} ${Math.abs(ajuste.cantidad)} unidades
+                <br><small>Motivo: ${ajuste.motivo}</small>
+            </div>`;
+        });
+    }
+    
+    // Mostrar conversiones
+    if (conversionesHoy.length > 0) {
+        html += '<h4>🔄 Conversiones de Tamaño</h4>';
+        conversionesHoy.forEach(conversion => {
+            html += `<div style="padding: 10px; margin: 5px 0; background: #e7f3ff; border-radius: 5px;">
+                🔄 ${conversion.de_producto} → ${conversion.a_producto}
+                <br>Cantidad: ${conversion.cantidad_convertida}
+            </div>`;
+        });
+    }
+    
+    // Mostrar recepciones
+    if (recepcionesHoy.length > 0) {
+        html += '<h4>📦 Recepciones de Mercancía</h4>';
+        recepcionesHoy.forEach(recepcion => {
+            html += `<div style="padding: 10px; margin: 5px 0; background: #d4edda; border-radius: 5px;">
+                📦 Recibido de ${recepcion.origen}: ${recepcion.total_productos} productos
+                ${recepcion.costo_envio > 0 ? `<br>Costo envío: $${recepcion.costo_envio.toFixed(2)}` : ''}
+            </div>`;
+            
+            if (recepcion.costo_envio > 0) {
+                totalRecepciones += recepcion.costo_envio;
+            }
+        });
+    }
+    
+    // Resumen financiero
+    const gananciaReal = gananciaProductos - costoRegaladas;
+    
+    html += `
+        <div style="margin-top: 30px; padding: 20px; background: linear-gradient(135deg, #28a745, #20c997); 
+                    color: white; border-radius: 10px;">
+            <h4 style="margin-top: 0;">💰 Resumen Financiero del Día</h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+                <div>
+                    <div style="font-size: 1.5em; font-weight: bold;">$${totalIngresos.toFixed(2)}</div>
+                    <div>Total Ingresos</div>
+                </div>
+                <div>
+                    <div style="font-size: 1.5em; font-weight: bold;">$${totalCostos.toFixed(2)}</div>
+                    <div>Costos Productos</div>
+                </div>
+                <div>
+                    <div style="font-size: 1.5em; font-weight: bold;">$${costoRegaladas.toFixed(2)}</div>
+                    <div>Costo Muestras</div>
+                </div>
+                <div>
+                    <div style="font-size: 1.5em; font-weight: bold;">$${gananciaReal.toFixed(2)}</div>
+                    <div>Ganancia Neta</div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('reportesContent').innerHTML = html;
+    mostrarModal('reportesModal');
+}
+
+// Convertir stock entre tamaños
+function actualizarInfoConversion() {
+    const tipo = document.getElementById('tipoConversion').value;
+    const labelCantidad = document.getElementById('labelCantidadConvertir');
+    
+    if (tipo === '100a50') {
+        labelCantidad.textContent = 'Cantidad de bolsas de 100g a convertir:';
+    } else if (tipo === '50a100') {
+        labelCantidad.textContent = 'Cantidad de pares de 50g a convertir:';
+    }
+    
+    mostrarStockConversion();
+}
+
+function mostrarStockConversion() {
+    const tipo = document.getElementById('tipoConversion').value;
+    const sabor = document.getElementById('saborConvertir').value;
+    
+    if (!tipo || !sabor) {
+        document.getElementById('stockConversionInfo').classList.add('hidden');
+        return;
+    }
+    
+    const codigo50 = `${sabor}_50g`;
+    const codigo100 = `${sabor}_100g`;
+    const stock50 = sistemaData.inventario[codigo50] || 0;
+    const stock100 = sistemaData.inventario[codigo100] || 0;
+    
+    let stockOrigenTexto = '';
+    let maxConversion = 0;
+    
+    if (tipo === '100a50') {
+        stockOrigenTexto = `Stock actual de 100g: ${stock100} unidades`;
+        maxConversion = stock100;
+    } else {
+        stockOrigenTexto = `Stock actual de 50g: ${stock50} unidades`;
+        maxConversion = Math.floor(stock50 / 2);
+    }
+    
+    document.getElementById('stockOrigenTexto').innerHTML = stockOrigenTexto;
+    document.getElementById('cantidadConvertir').max = maxConversion;
+    document.getElementById('stockConversionInfo').classList.remove('hidden');
+    
+    calcularResultadoConversion();
+}
+
+function calcularResultadoConversion() {
+    const tipo = document.getElementById('tipoConversion').value;
+    const cantidad = parseInt(document.getElementById('cantidadConvertir').value) || 0;
+    
+    if (!tipo || cantidad <= 0) {
+        document.getElementById('conversionResultado').innerHTML = '';
+        return;
+    }
+    
+    let resultado = '';
+    if (tipo === '100a50') {
+        resultado = `Resultado: ${cantidad} bolsas de 100g → ${cantidad * 2} bolsas de 50g`;
+    } else {
+        resultado = `Resultado: ${cantidad * 2} bolsas de 50g → ${cantidad} bolsas de 100g`;
+    }
+    
+    document.getElementById('conversionResultado').innerHTML = resultado;
+}
+
+async function convertirStock(event) {
+    event.preventDefault();
+    
+    const tipo = document.getElementById('tipoConversion').value;
+    const sabor = document.getElementById('saborConvertir').value;
+    const cantidad = parseInt(document.getElementById('cantidadConvertir').value);
+    
+    const codigo50 = `${sabor}_50g`;
+    const codigo100 = `${sabor}_100g`;
+    
+    try {
+        actualizarEstadoSync('syncing');
+        
+        let conversion;
+        
+        if (tipo === '100a50') {
+            // Convertir de 100g a 50g
+            const stock100 = sistemaData.inventario[codigo100] || 0;
+            if (stock100 < cantidad) {
+                mostrarAlerta('❌ Stock insuficiente para la conversión', 'error');
+                return;
+            }
+            
+            conversion = {
+                fecha: new Date().toISOString(),
+                tipo: '100a50',
+                sabor: sabor,
+                de_producto: `${sabor.charAt(0).toUpperCase() + sabor.slice(1)} 100g`,
+                a_producto: `${sabor.charAt(0).toUpperCase() + sabor.slice(1)} 50g`,
+                cantidad_origen: cantidad,
+                cantidad_destino: cantidad * 2,
+                cantidad_convertida: cantidad
+            };
+            
+            // Actualizar inventario
+            await db.collection('inventario').doc(codigo100).set({
+                cantidad: stock100 - cantidad
+            });
+            
+            const stock50 = sistemaData.inventario[codigo50] || 0;
+            await db.collection('inventario').doc(codigo50).set({
+                cantidad: stock50 + (cantidad * 2)
+            });
+            
+            sistemaData.inventario[codigo100] = stock100 - cantidad;
+            sistemaData.inventario[codigo50] = stock50 + (cantidad * 2);
+            
+        } else {
+            // Convertir de 50g a 100g
+            const stock50 = sistemaData.inventario[codigo50] || 0;
+            if (stock50 < (cantidad * 2)) {
+                mostrarAlerta('❌ Stock insuficiente para la conversión', 'error');
+                return;
+            }
+            
+            conversion = {
+                fecha: new Date().toISOString(),
+                tipo: '50a100',
+                sabor: sabor,
+                de_producto: `${sabor.charAt(0).toUpperCase() + sabor.slice(1)} 50g`,
+                a_producto: `${sabor.charAt(0).toUpperCase() + sabor.slice(1)} 100g`,
+                cantidad_origen: cantidad * 2,
+                cantidad_destino: cantidad,
+                cantidad_convertida: cantidad
+            };
+            
+            // Actualizar inventario
+            await db.collection('inventario').doc(codigo50).set({
+                cantidad: stock50 - (cantidad * 2)
+            });
+            
+            const stock100 = sistemaData.inventario[codigo100] || 0;
+            await db.collection('inventario').doc(codigo100).set({
+                cantidad: stock100 + cantidad
+            });
+            
+            sistemaData.inventario[codigo50] = stock50 - (cantidad * 2);
+            sistemaData.inventario[codigo100] = stock100 + cantidad;
+        }
+        
+        // Registrar conversión
+        await db.collection('conversiones').add(conversion);
+        sistemaData.conversiones.push(conversion);
+        
+        mostrarAlerta(`✅ Conversión realizada<br>${conversion.de_producto} → ${conversion.a_producto}`, 'success');
+        
+        actualizarEstadisticas();
+        actualizarEstadoSync('online');
+        cerrarModal('convertirStockModal');
+        
+    } catch (error) {
+        console.error('Error al convertir stock:', error);
+        mostrarAlerta('❌ Error al realizar la conversión', 'error');
+        actualizarEstadoSync('offline');
+    }
+}
+
+// Registrar envío
+function actualizarPrecioEnvio() {
+    calcularTotalEnvio();
+}
+
+function calcularTotalEnvio() {
+    const tamaño = parseInt(document.getElementById('tamañoEnvio').value) || 0;
+    const cantidad = parseInt(document.getElementById('cantidadEnvio').value) || 0;
+    const tipoPrecio = document.getElementById('tipoPrecioEnvio').value;
+    const costoEnvio = parseFloat(document.getElementById('costoEnvio').value) || 0;
+    
+    if (tamaño && cantidad) {
+        const precioUnitario = tipoPrecio === 'mayoreo' ? 
+            sistemaData.precios_mayoreo[tamaño] : 
+            sistemaData.precios_menudeo[tamaño];
+        
+        const subtotal = precioUnitario * cantidad;
+        const total = subtotal + costoEnvio;
+        
+        document.getElementById('subtotalEnvio').textContent = subtotal.toFixed(2);
+        document.getElementById('costoEnvioMostrar').textContent = costoEnvio.toFixed(2);
+        document.getElementById('totalEnvio').textContent = total.toFixed(2);
+    } else {
+        document.getElementById('subtotalEnvio').textContent = '0.00';
+        document.getElementById('costoEnvioMostrar').textContent = costoEnvio.toFixed(2);
+        document.getElementById('totalEnvio').textContent = costoEnvio.toFixed(2);
+    }
+}
+
+async function registrarEnvio(event) {
+    event.preventDefault();
+    
+    const cliente = document.getElementById('clienteEnvio').value;
+    const sabor = document.getElementById('saborEnvio').value;
+    const tamaño = parseInt(document.getElementById('tamañoEnvio').value);
+    const cantidad = parseInt(document.getElementById('cantidadEnvio').value);
+    const tipoPrecio = document.getElementById('tipoPrecioEnvio').value;
+    const costoEnvio = parseFloat(document.getElementById('costoEnvio').value);
+    
+    const codigo = `${sabor}_${tamaño}g`;
+    const stockActual = sistemaData.inventario[codigo] || 0;
+    
+    if (stockActual < cantidad) {
+        mostrarAlerta(`❌ Stock insuficiente! Disponible: ${stockActual}`, 'error');
+        return;
+    }
+    
+    try {
+        actualizarEstadoSync('syncing');
+        
+        const precioUnitario = tipoPrecio === 'mayoreo' ? 
+            sistemaData.precios_mayoreo[tamaño] : 
+            sistemaData.precios_menudeo[tamaño];
+        
+        const subtotal = precioUnitario * cantidad;
+        const totalVenta = subtotal + costoEnvio;
+        const costoProducto = (sistemaData.costos_unitarios[codigo] || 0) * cantidad;
+        const ganancia = subtotal - costoProducto;
+        
+        const envio = {
+            fecha: new Date().toISOString(),
+            cliente: cliente,
+            producto: `${sabor.charAt(0).toUpperCase() + sabor.slice(1)} ${tamaño}g`,
+            codigo: codigo,
+            cantidad: cantidad,
+            tipo_precio: tipoPrecio,
+            precio_unitario: precioUnitario,
+            subtotal: subtotal,
+            costo_envio: costoEnvio,
+            total_venta: totalVenta,
+            costo_producto: costoProducto,
+            ganancia: ganancia
+        };
+        
+        await db.collection('envios').add(envio);
+        
+        // Actualizar inventario
+        await db.collection('inventario').doc(codigo).set({
+            cantidad: stockActual - cantidad
+        });
+        
+        sistemaData.envios.push(envio);
+        sistemaData.inventario[codigo] = stockActual - cantidad;
+        
+        mostrarAlerta(`✅ Envío registrado<br>Cliente: ${cliente}<br>Total: $${totalVenta.toFixed(2)}`, 'success');
+        
+        actualizarEstadisticas();
+        actualizarEstadoSync('online');
+        cerrarModal('envioModal');
+        
+        // Limpiar formulario
+        document.getElementById('clienteEnvio').value = '';
+        document.getElementById('saborEnvio').value = '';
+        document.getElementById('tamañoEnvio').value = '';
+        document.getElementById('cantidadEnvio').value = '';
+        document.getElementById('costoEnvio').value = '';
+        
+    } catch (error) {
+        console.error('Error al registrar envío:', error);
+        mostrarAlerta('❌ Error al registrar envío', 'error');
+        actualizarEstadoSync('offline');
+    }
+}
+
+// Cancelar venta
+function mostrarCancelarVenta() {
+    const ventasRecientes = [...sistemaData.ventas]
+        .sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
+        .slice(0, 20);
+    
+    let html = '<h3>Últimas 20 Ventas</h3>';
+    
+    if (ventasRecientes.length === 0) {
+        html += '<p>No hay ventas registradas.</p>';
+    } else {
+        html += '<div style="max-height: 60vh; overflow-y: auto;">';
+        
+        ventasRecientes.forEach(venta => {
+            const fecha = new Date(venta.fecha);
+            const fechaStr = fecha.toLocaleString('es-MX', {
+                timeZone: timeZone,
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            let detalleProductos = '';
+            if (venta.productos && Array.isArray(venta.productos)) {
+                detalleProductos = venta.productos.map(p => 
+                    `${p.sabor} ${p.tamaño}g x${p.cantidad}`
+                ).join(', ');
+            } else {
+                detalleProductos = `${venta.producto} x${venta.cantidad}`;
+            }
+            
+            html += `
+                <div style="background: #f8f9fa; padding: 15px; margin: 10px 0; border-radius: 10px; 
+                            border-left: 5px solid ${venta.cancelada ? '#dc3545' : '#28a745'};">
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div>
+                            <strong>${fechaStr}</strong><br>
+                            ${detalleProductos}<br>
+                            Total: $${venta.total_venta.toFixed(2)}
+                            ${venta.cancelada ? '<br><span style="color: #dc3545;">⚠️ CANCELADA</span>' : ''}
+                        </div>
+                        ${!venta.cancelada ? `
+                            <button class="btn btn-danger btn-sm" onclick="confirmarCancelacion('${venta.id}')">
+                                ❌ Cancelar
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+    }
+    
+    document.getElementById('listadoVentasContent').innerHTML = html;
+    mostrarModal('cancelarVentaModal');
+}
+
+async function confirmarCancelacion(ventaId) {
+    if (!confirm('¿Estás seguro de cancelar esta venta? Se restaurará el inventario.')) {
+        return;
+    }
+    
+    try {
+        actualizarEstadoSync('syncing');
+        
+        // Buscar la venta
+        const venta = sistemaData.ventas.find(v => v.id === ventaId);
+        if (!venta || venta.cancelada) {
+            mostrarAlerta('❌ Venta no encontrada o ya cancelada', 'error');
+            return;
+        }
+        
+        // Restaurar inventario
+        const batch = db.batch();
+        
+        if (venta.productos && Array.isArray(venta.productos)) {
+            // Venta múltiple
+            for (const producto of venta.productos) {
+                const stockActual = sistemaData.inventario[producto.codigo] || 0;
+                const invRef = db.collection('inventario').doc(producto.codigo);
+                batch.set(invRef, { cantidad: stockActual + producto.cantidad });
+                
+                // Actualizar localmente
+                sistemaData.inventario[producto.codigo] = stockActual + producto.cantidad;
+            }
+        } else {
+            // Venta simple (formato antiguo)
+            const codigo = venta.codigo || obtenerCodigoProducto(venta.producto);
+            const stockActual = sistemaData.inventario[codigo] || 0;
+            const invRef = db.collection('inventario').doc(codigo);
+            batch.set(invRef, { cantidad: stockActual + venta.cantidad });
+            
+            sistemaData.inventario[codigo] = stockActual + venta.cantidad;
+        }
+        
+        // Marcar venta como cancelada
+        const ventaRef = db.collection('ventas').doc(ventaId);
+        batch.update(ventaRef, { 
+            cancelada: true, 
+            fecha_cancelacion: new Date().toISOString() 
+        });
+        
+        await batch.commit();
+        
+        // Actualizar localmente
+        venta.cancelada = true;
+        venta.fecha_cancelacion = new Date().toISOString();
+        
+        mostrarAlerta('✅ Venta cancelada e inventario restaurado', 'success');
+        
+        actualizarEstadisticas();
+        actualizarEstadoSync('online');
+        mostrarCancelarVenta(); // Refrescar la lista
+        
+    } catch (error) {
+        console.error('Error al cancelar venta:', error);
+        mostrarAlerta('❌ Error al cancelar la venta', 'error');
+        actualizarEstadoSync('offline');
+    }
+}
+
+// Función auxiliar para obtener código de producto del formato antiguo
+function obtenerCodigoProducto(nombreProducto) {
+    // Extraer sabor y tamaño del nombre del producto
+    const partes = nombreProducto.toLowerCase().split(' ');
+    const sabor = partes[0];
+    const tamañoMatch = nombreProducto.match(/(\d+)g/);
+    const tamaño = tamañoMatch ? tamañoMatch[1] : '50';
+    
+    return `${sabor}_${tamaño}g`;
+}
+
+// Mostrar tendencias
+function mostrarTendencias() {
+    const ventasOrdenadas = [...sistemaData.ventas]
+        .filter(v => !v.cancelada)
+        .sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+    
+    if (ventasOrdenadas.length === 0) {
+        document.getElementById('tendenciasContent').innerHTML = '<p>No hay suficientes datos para mostrar tendencias.</p>';
+        mostrarModal('tendenciasModal');
+        return;
+    }
+    
+    // Análisis por producto
+    const ventasPorProducto = {};
+    const ventasPorDia = {};
+    const ventasPorSabor = {};
+    
+    ventasOrdenadas.forEach(venta => {
+        const fecha = venta.fecha.split('T')[0];
+        
+        if (!ventasPorDia[fecha]) {
+            ventasPorDia[fecha] = {
+                cantidad: 0,
+                total: 0,
+                ganancia: 0
+            };
+        }
+        
+        if (venta.productos && Array.isArray(venta.productos)) {
+            // Venta múltiple
+            venta.productos.forEach(producto => {
+                const key = `${producto.sabor}_${producto.tamaño}g`;
+                
+                if (!ventasPorProducto[key]) {
+                    ventasPorProducto[key] = {
+                        sabor: producto.sabor,
+                        tamaño: producto.tamaño,
+                        cantidad: 0,
+                        ingresos: 0
+                    };
+                }
+                
+                if (!ventasPorSabor[producto.sabor]) {
+                    ventasPorSabor[producto.sabor] = {
+                        cantidad: 0,
+                        ingresos: 0
+                    };
+                }
+                
+                ventasPorProducto[key].cantidad += producto.cantidad;
+                ventasPorProducto[key].ingresos += producto.subtotal;
+                ventasPorSabor[producto.sabor].cantidad += producto.cantidad;
+                ventasPorSabor[producto.sabor].ingresos += producto.subtotal;
+                
+                ventasPorDia[fecha].cantidad += producto.cantidad;
+            });
+        } else {
+            // Venta simple
+            const codigo = venta.codigo || obtenerCodigoProducto(venta.producto);
+            const [sabor, tamañoStr] = codigo.split('_');
+            const tamaño = parseInt(tamañoStr);
+            
+            if (!ventasPorProducto[codigo]) {
+                ventasPorProducto[codigo] = {
+                    sabor: sabor,
+                    tamaño: tamaño,
+                    cantidad: 0,
+                    ingresos: 0
+                };
+            }
+            
+            if (!ventasPorSabor[sabor]) {
+                ventasPorSabor[sabor] = {
+                    cantidad: 0,
+                    ingresos: 0
+                };
+            }
+            
+            ventasPorProducto[codigo].cantidad += venta.cantidad;
+            ventasPorProducto[codigo].ingresos += venta.total_venta;
+            ventasPorSabor[sabor].cantidad += venta.cantidad;
+            ventasPorSabor[sabor].ingresos += venta.total_venta;
+            
+            ventasPorDia[fecha].cantidad += venta.cantidad;
+        }
+        
+        ventasPorDia[fecha].total += venta.total_venta;
+        ventasPorDia[fecha].ganancia += venta.ganancia;
+    });
+    
+    // Ordenar productos por cantidad vendida
+    const productosOrdenados = Object.entries(ventasPorProducto)
+        .sort((a, b) => b[1].cantidad - a[1].cantidad);
+    
+    // Ordenar sabores por popularidad
+    const saboresOrdenados = Object.entries(ventasPorSabor)
+        .sort((a, b) => b[1].cantidad - a[1].cantidad);
+    
+    let html = '<div style="display: grid; gap: 20px;">';
+    
+    // Productos más vendidos
+    html += `
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 10px;">
+            <h4>🏆 Top 5 Productos Más Vendidos</h4>
+            <div style="margin-top: 15px;">
+    `;
+    
+    productosOrdenados.slice(0, 5).forEach((item, index) => {
+        const [codigo, datos] = item;
+        const nombreProducto = `${datos.sabor.charAt(0).toUpperCase() + datos.sabor.slice(1)} ${datos.tamaño}g`;
+        const porcentaje = ((datos.ingresos / Object.values(ventasPorProducto).reduce((sum, p) => sum + p.ingresos, 0)) * 100).toFixed(1);
+        
+        html += `
+            <div style="display: flex; justify-content: space-between; padding: 10px; 
+                        background: white; margin: 5px 0; border-radius: 5px;">
+                <div>
+                    <strong>${index + 1}. ${nombreProducto}</strong>
+                    <br><small>${datos.cantidad} unidades vendidas</small>
+                </div>
+                <div style="text-align: right;">
+                    <strong>$${datos.ingresos.toFixed(2)}</strong>
+                    <br><small>${porcentaje}% del total</small>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div></div>';
+    
+    // Sabores más populares
+    html += `
+        <div style="background: #e8f5e8; padding: 20px; border-radius: 10px;">
+            <h4>🌶️ Sabores Más Populares</h4>
+            <div style="margin-top: 15px;">
+    `;
+    
+    saboresOrdenados.forEach((item, index) => {
+        const [sabor, datos] = item;
+        const nombreSabor = sabor.charAt(0).toUpperCase() + sabor.slice(1);
+        const porcentaje = ((datos.cantidad / Object.values(ventasPorSabor).reduce((sum, s) => sum + s.cantidad, 0)) * 100).toFixed(1);
+        
+        const barWidth = porcentaje;
+        
+        html += `
+            <div style="margin: 10px 0;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                    <strong>${nombreSabor}</strong>
+                    <span>${datos.cantidad} unidades (${porcentaje}%)</span>
+                </div>
+                <div style="background: #ddd; height: 20px; border-radius: 10px; overflow: hidden;">
+                    <div style="background: linear-gradient(to right, #ff6b35, #d73027); 
+                                width: ${barWidth}%; height: 100%; transition: width 0.3s;">
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div></div>';
+    
+    // Tendencia de ventas por día
+    const diasOrdenados = Object.entries(ventasPorDia).slice(-30); // Últimos 30 días
+    
+    if (diasOrdenados.length > 7) {
+        html += `
+            <div style="background: #e3f2fd; padding: 20px; border-radius: 10px;">
+                <h4>📈 Tendencia de Ventas (Últimos ${diasOrdenados.length} días)</h4>
+                <div style="margin-top: 15px; overflow-x: auto;">
+                    <div style="display: flex; align-items: end; height: 200px; min-width: 600px;">
+        `;
+        
+        const maxVenta = Math.max(...diasOrdenados.map(d => d[1].total));
+        
+        diasOrdenados.forEach(([fecha, datos]) => {
+            const altura = (datos.total / maxVenta) * 150;
+            const fechaObj = new Date(fecha + 'T12:00:00');
+            const dia = fechaObj.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
+            
+            html += `
+                <div style="flex: 1; margin: 0 2px; display: flex; flex-direction: column; 
+                            align-items: center; justify-content: end;">
+                    <div style="background: linear-gradient(to top, #2196F3, #64B5F6); 
+                                width: 100%; height: ${altura}px; border-radius: 5px 5px 0 0;
+                                position: relative; cursor: pointer;"
+                         title="${fecha}: $${datos.total.toFixed(2)}">
+                        <div style="position: absolute; top: -20px; width: 100%; text-align: center; 
+                                    font-size: 11px; font-weight: bold;">
+                            $${(datos.total / 1000).toFixed(1)}k
+                        </div>
+                    </div>
+                    <div style="font-size: 10px; margin-top: 5px; transform: rotate(-45deg);">
+                        ${dia}
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div></div></div>';
+    }
+    
+    html += '</div>';
+    
+    document.getElementById('tendenciasContent').innerHTML = html;
+    mostrarModal('tendenciasModal');
+}
+
+// Mostrar recomendaciones
+function mostrarRecomendaciones() {
+    // Analizar ventas de los últimos 30 días
+    const hace30Dias = new Date();
+    hace30Dias.setDate(hace30Dias.getDate() - 30);
+    
+    const ventasRecientes = sistemaData.ventas.filter(v => 
+        !v.cancelada && new Date(v.fecha) >= hace30Dias
+    );
+    
+    // Calcular velocidad de venta por producto
+    const velocidadVenta = {};
+    
+    ventasRecientes.forEach(venta => {
+        if (venta.productos && Array.isArray(venta.productos)) {
+            venta.productos.forEach(producto => {
+                const codigo = producto.codigo;
+                if (!velocidadVenta[codigo]) {
+                    velocidadVenta[codigo] = 0;
+                }
+                velocidadVenta[codigo] += producto.cantidad;
+            });
+        }
+    });
+    
+    // Calcular promedio diario
+    Object.keys(velocidadVenta).forEach(codigo => {
+        velocidadVenta[codigo] = velocidadVenta[codigo] / 30;
+    });
+    
+    let html = '<div style="display: grid; gap: 20px;">';
+    
+    // Productos con stock crítico
+    html += `
+        <div style="background: #f8d7da; padding: 20px; border-radius: 10px;">
+            <h4>🚨 Productos con Stock Crítico</h4>
+            <div style="margin-top: 15px;">
+    `;
+    
+    let productosCriticos = 0;
+    Object.entries(sistemaData.inventario).forEach(([codigo, stock]) => {
+        const velocidad = velocidadVenta[codigo] || 0;
+        const diasRestantes = velocidad > 0 ? stock / velocidad : 999;
+        
+        if (diasRestantes < 7 && stock > 0) {
+            const [sabor, tamañoStr] = codigo.split('_');
+            const nombreProducto = `${sabor.charAt(0).toUpperCase() + sabor.slice(1)} ${tamañoStr}`;
+            
+            html += `
+                <div style="padding: 10px; background: white; margin: 5px 0; border-radius: 5px;">
+                    <strong>${nombreProducto}</strong>
+                    <br>Stock actual: ${stock} unidades
+                    <br>Duración estimada: ${Math.floor(diasRestantes)} días
+                    <br><strong>Recomendación:</strong> Reabastecer urgentemente
+                </div>
+            `;
+            productosCriticos++;
+        }
+    });
+    
+    if (productosCriticos === 0) {
+        html += '<p>No hay productos con stock crítico en este momento.</p>';
+    }
+    
+    html += '</div></div>';
+    
+    // Productos sin movimiento
+    html += `
+        <div style="background: #fff3cd; padding: 20px; border-radius: 10px;">
+            <h4>⚠️ Productos Sin Movimiento (Últimos 30 días)</h4>
+            <div style="margin-top: 15px;">
+    `;
+    
+    let productosSinMovimiento = 0;
+    Object.entries(sistemaData.inventario).forEach(([codigo, stock]) => {
+        if (stock > 0 && !velocidadVenta[codigo]) {
+            const [sabor, tamañoStr] = codigo.split('_');
+            const nombreProducto = `${sabor.charAt(0).toUpperCase() + sabor.slice(1)} ${tamañoStr}`;
+            
+            html += `
+                <div style="padding: 10px; background: white; margin: 5px 0; border-radius: 5px;">
+                    <strong>${nombreProducto}</strong>
+                    <br>Stock actual: ${stock} unidades
+                    <br><strong>Recomendación:</strong> Considerar promociones o muestras gratis
+                </div>
+            `;
+            productosSinMovimiento++;
+        }
+    });
+    
+    if (productosSinMovimiento === 0) {
+        html += '<p>Todos los productos tienen movimiento.</p>';
+    }
+    
+    html += '</div></div>';
+    
+    // Oportunidades de conversión
+    html += `
+        <div style="background: #e7f3ff; padding: 20px; border-radius: 10px;">
+            <h4>🔄 Oportunidades de Conversión de Tamaños</h4>
+            <div style="margin-top: 15px;">
+    `;
+    
+    let oportunidadesConversion = 0;
+    sistemaData.sabores.forEach(sabor => {
+        const stock50 = sistemaData.inventario[`${sabor}_50g`] || 0;
+        const stock100 = sistemaData.inventario[`${sabor}_100g`] || 0;
+        const velocidad50 = velocidadVenta[`${sabor}_50g`] || 0;
+        const velocidad100 = velocidadVenta[`${sabor}_100g`] || 0;
+        
+        if (stock50 === 0 && stock100 > 5 && velocidad50 > 0) {
+            html += `
+                <div style="padding: 10px; background: white; margin: 5px 0; border-radius: 5px;">
+                    <strong>${sabor.charAt(0).toUpperCase() + sabor.slice(1)}</strong>
+                    <br>Sin stock en 50g pero hay ${stock100} unidades de 100g
+                    <br><strong>Recomendación:</strong> Convertir algunas bolsas de 100g a 50g
+                </div>
+            `;
+            oportunidadesConversion++;
+        } else if (stock100 === 0 && stock50 > 10 && velocidad100 > 0) {
+            html += `
+                <div style="padding: 10px; background: white; margin: 5px 0; border-radius: 5px;">
+                    <strong>${sabor.charAt(0).toUpperCase() + sabor.slice(1)}</strong>
+                    <br>Sin stock en 100g pero hay ${stock50} unidades de 50g
+                    <br><strong>Recomendación:</strong> Convertir pares de 50g a 100g
+                </div>
+            `;
+            oportunidadesConversion++;
+        }
+    });
+    
+    if (oportunidadesConversion === 0) {
+        html += '<p>No hay oportunidades de conversión recomendadas en este momento.</p>';
+    }
+    
+    html += '</div></div>';
+    
+    html += '</div>';
+    
+    mostrarAlerta('💡 Recomendaciones generadas basadas en los últimos 30 días', 'success');
+    document.getElementById('tendenciasContent').innerHTML = html;
+    mostrarModal('tendenciasModal');
+}
+
+// Actualizar estadísticas del dashboard
+function actualizarEstadisticas() {
+    const hoy = obtenerFechaMexico();
+    
+    // Filtrar ventas del día (no canceladas)
+    const ventasHoy = sistemaData.ventas.filter(venta => 
+        venta.fecha.split('T')[0] === hoy && !venta.cancelada
+    );
+    
+    const enviosHoy = sistemaData.envios.filter(envio => 
+        envio.fecha.split('T')[0] === hoy
+    );
+    
+    // Calcular totales
+    let totalVentas = 0;
+    let totalIngresos = 0;
+    
+    ventasHoy.forEach(venta => {
+        if (venta.productos && Array.isArray(venta.productos)) {
+            totalVentas += venta.cantidad_total || venta.productos.reduce((sum, p) => sum + p.cantidad, 0);
+        } else {
+            totalVentas += venta.cantidad;
+        }
+        totalIngresos += venta.total_venta;
+    });
+    
+    enviosHoy.forEach(envio => {
+        totalVentas += envio.cantidad;
+        totalIngresos += envio.total_venta;
+    });
+    
+    // Contar productos en stock
+    let productosEnStock = 0;
+    Object.values(sistemaData.inventario).forEach(stock => {
+        if (stock > 0) productosEnStock++;
+    });
+    
+    // Actualizar UI
+    document.getElementById('ventasHoy').textContent = totalVentas;
+    document.getElementById('ingresosHoy').textContent = `$${totalIngresos.toFixed(2)}`;
+    document.getElementById('productosStock').textContent = productosEnStock;
+}
+
+// Mostrar alertas
+function mostrarAlerta(mensaje, tipo = 'success') {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${tipo}`;
+    alertDiv.innerHTML = mensaje;
+    alertDiv.style.cssText = `
+        padding: 15px 20px;
+        margin: 10px;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        animation: slideIn 0.3s ease;
+        max-width: 400px;
+    `;
+    
+    const container = document.getElementById('alertContainer');
+    container.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        alertDiv.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 300);
+    }, 3000);
+}
+
+// Animaciones para alertas
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    
+    @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+    }
+`;
+document.head.appendChild(style);
+
+// Cerrar modales al hacer clic fuera
+window.onclick = function(event) {
+    if (event.target.classList.contains('modal')) {
+        event.target.style.display = 'none';
+        
+        // Limpiar contenido específico de algunos modales
+        if (event.target.id === 'ventaMultipleModal') {
+            limpiarCarrito();
+        } else if (event.target.id === 'nuevaRecepcionModal') {
+            limpiarFormularioRecepcion();
+        }
+    }
+}
+
+// Inicializar la aplicación al cargar
+window.onload = function() {
+    verificarSesion();
+};
